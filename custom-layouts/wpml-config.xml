@@ -1,0 +1,36 @@
+<wpml-config>
+	<custom-types>
+		<custom-type translate="1">cl-layout</custom-type>
+		<custom-type translate="1">cl-template</custom-type>
+	</custom-types>
+	<custom-fields>
+		<custom-field action="copy">custom-layouts-layout</custom-field>
+
+		<custom-field action="translate">custom-layouts-query</custom-field>
+		<custom-field action="copy">custom-layouts-template-data</custom-field>
+		<custom-field action="translate">custom-layouts-template-instances</custom-field>
+		<custom-field action="copy">custom-layouts-template-instance-order</custom-field>
+	</custom-fields>
+	<custom-fields-texts>
+		<key name="custom-layouts-query">
+			<key name="no_results_message" />
+		</key>
+		<key name="custom-layouts-template-instances">
+			<key name="eluid-*">
+				<key name="data">
+					<key name="beforeText" />
+					<key name="afterText" />
+					<key name="linkLabel" />
+					<key name="seperatorText" />
+					<key name="label" />
+					<key name="labelNone" />
+					<key name="labelSingle" />
+					<key name="labelMultiple" />
+					<key name="text" />
+				</key>
+			</key>
+		</key>
+
+
+	</custom-fields-texts>
+</wpml-config>

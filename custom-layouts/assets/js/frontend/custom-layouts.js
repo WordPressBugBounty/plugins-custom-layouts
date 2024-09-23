@@ -1,0 +1,1 @@
+document.addEventListener("DOMContentLoaded",(function(o){if(imagesLoaded&&Masonry){var n=document.querySelectorAll(".cl-layout--masonry .cl-layout__masonry-content");n.length>0&&n.forEach((function(o,t){var e=new Masonry(o,{itemSelector:".cl-layout__item",percentPosition:!0,transitionDuration:0});imagesLoaded(n).on("progress",(function(){e.layout()}))}))}}));

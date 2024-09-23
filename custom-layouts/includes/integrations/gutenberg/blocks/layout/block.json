@@ -1,0 +1,164 @@
+{
+	"schema": "https://schemas.wp.org/trunk/block.json",
+	"name": "custom-layouts/posts-block",
+	"textdomain": "custom-layouts",
+	"title": "Posts Layout",
+	"keywords": [ "custom", "layout", "grid", "list", "template", "posts", "products", "pages"	],
+	"description": "Display posts as a list or grid.",
+	"category": "widgets",
+	"attributes": {
+		"templateId": {
+			"type": "string",
+			"default": "default"
+		},
+		"layoutId": {
+			"type": "string",
+			"default": "default"
+		},
+		"columnsLarge": {
+			"type": "number",
+			"default": 3
+		},
+		"columnsMedium": {
+			"type": "number",
+			"default": 3
+		},
+		"columnsMediumLocked": {
+			"type": "string",
+			"default": "yes"
+		},
+		"columnsSmall": {
+			"type": "number",
+			"default": 2
+		},
+		"columnsSmallLocked": {
+			"type": "string",
+			"default": "no"
+		},
+		"columnsXsmall": {
+			"type": "number",
+			"default": 1
+		},
+		"columnsXsmallLocked": {
+			"type": "string",
+			"default": "no"
+		},
+		"useMasonry": {
+			"type": "string",
+			"default": "no"
+		},
+		"equalHeightRows": {
+			"type": "string",
+			"default": "no"
+		},
+		"fillLastRow": {
+			"type": "string",
+			"default": "no"
+		},
+		"gridGap": {
+			"type": "object",
+			"default": { "column": "10px", "row": "10px" }
+		},
+		"backgroundColor": {
+			"type": "string",
+			"default": ""
+		},
+		"backgroundGradient": {
+			"type": "string",
+			"default": ""
+		},
+		"marginSize": {
+			"type": "object",
+			"default": { "top": "0px", "right": "0px", "bottom": "0px", "left": "0px" }
+		},
+		"paddingSize": {
+			"type": "object",
+			"default": { "top": "0px", "right": "0px", "bottom": "0px", "left": "0px" }
+		},
+		"postTypes": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			},
+			"default": [ "post" ]
+		},
+		"paginationType": {
+			"type": "string",
+			"default": "none"
+		},
+
+		"postsPerPage": {
+			"type": "string",
+			"default": "6"
+		},
+		"offset": {
+			"type": "string",
+			"default": "0"
+		},
+		"ignoreStickyPosts": {
+			"type": "string",
+			"default": "no"
+		},
+		"filterTaxonomies": {
+			"type": "string",
+			"default": "no"
+		},
+		"taxonomyQuery": {
+			"type": "object",
+			"default": {}
+		},
+		"filterAuthors": {
+			"type": "string",
+			"default": "no"
+		},
+		"authors": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			},
+			"default": []
+		},
+		"excludeCurrentPost": {
+			"type": "string",
+			"default": "yes"
+		},
+		"noResultsMessage": {
+			"type": "string",
+			"default": "No results found."
+		},
+
+		"orderDir": {
+			"type": "string",
+			"default": "desc"
+		},
+		"orderBy": {
+			"type": "string",
+			"default": "date"
+		},
+		"useSearchFilter": {
+			"type": "string",
+			"default": "no"
+		},
+		"useSavedLayout": {
+			"type": "string",
+			"default": "no"
+		},
+		"searchFilterId": {
+			"type": "number",
+			"default": "0"
+		},
+		"align": {
+			"type": "string",
+			"default": ""
+		}
+	},
+	"supports": {
+		"align": [ "center", "wide", "full" ], 
+		"html": false,
+		"className": true
+	},
+	"editorScript": "",
+    "script": "",
+    "editorStyle": "",
+    "style": ""
+}

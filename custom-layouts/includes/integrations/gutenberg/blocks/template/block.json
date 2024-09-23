@@ -1,0 +1,41 @@
+{
+	"schema": "https://schemas.wp.org/trunk/block.json",
+	"name": "custom-layouts/post-block",
+	"textdomain": "custom-layouts",
+	"title": "Post Template",
+	"keywords": [ "custom", "layout", "template", "post", "product", "page"	],
+	"description": "Display any post using a Custom Template.",
+	"category": "widgets",
+	"usesContext": [
+		"queryId",
+		"query",
+		"queryContext",
+		"layout",
+		"templateSlug",
+		"postId",
+		"postType"
+	],
+	"attributes": {
+		"templateId": {
+			"type": "string",
+			"default": "default"
+		},
+		"postId": {
+			"type": "number",
+			"default": 0
+		},
+		"align": {
+			"type": "string",
+			"default": ""
+		}
+	},
+	"supports": {
+		"align": [ "center", "wide", "full" ], 
+		"html": false,
+		"className": true
+	},
+	"editorScript": "",
+    "script": "",
+    "editorStyle": "",
+    "style": ""
+}
