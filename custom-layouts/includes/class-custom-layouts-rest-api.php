@@ -1,4 +1,11 @@
 <?php
+/**
+ * REST API functionality class
+ *
+ * @package    Custom_Layouts
+ * @since      1.0.0
+ */
+
 namespace Custom_Layouts;
 
 use Custom_Layouts\Core\Cache;
@@ -27,13 +34,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * REST API controller for Custom Layouts.
+ *
+ * @since 1.0.0
+ */
 class Rest_API {
 
+	/**
+	 * Constructor.
+	 *
+	 * @since 1.0.0
+	 */
 	public function __construct() {
 		add_action( 'rest_api_init', array( $this, 'add_routes' ) );
-
 	}
 
+	/**
+	 * Register all REST API routes.
+	 *
+	 * @since 1.0.0
+	 */
 	public function add_routes() {
 		register_rest_route(
 			'custom-layouts/v1',
@@ -240,7 +261,7 @@ class Rest_API {
 				'callback'            => array( $this, 'get_template' ),
 				'args'                => array(
 					'id' => array(
-						// We need to support "default"
+						// We need to support "default".
 						'type'              => 'number',
 						'required'          => true,
 						'sanitize_callback' => 'absint',
@@ -448,9 +469,16 @@ class Rest_API {
 		);
 	}
 
+	/**
+	 * Get template posts from query data.
+	 *
+	 * @since 1.0.0
+	 * @param array $query_data The query data containing post IDs.
+	 * @return array Array of post data for templates.
+	 */
 	private function get_template_posts( $query_data ) {
 		$posts               = array();
-		$template_controller = new Template_Controller( '' );
+		$template_controller = new Template_Controller( 0 );
 
 		foreach ( $query_data['ids'] as $post_id ) {
 			$post = get_post( $post_id );
@@ -459,9 +487,17 @@ class Rest_API {
 
 		return $posts;
 	}
+
+	/**
+	 * Get template posts from WP_Query object.
+	 *
+	 * @since 1.0.0
+	 * @param \WP_Query $query The WP_Query object.
+	 * @return array Array of post data for templates.
+	 */
 	private function get_template_posts_from_query( $query ) {
 		$posts               = array();
-		$template_controller = new Template_Controller( '' );
+		$template_controller = new Template_Controller( 0 );
 
 		foreach ( $query->posts as $post ) {
 			array_push( $posts, $this->get_template_post( $post, $template_controller ) );
@@ -469,33 +505,53 @@ class Rest_API {
 
 		return $posts;
 	}
+
+	/**
+	 * Get template post data for a single post.
+	 *
+	 * @since 1.0.0
+	 * @param \WP_Post            $post                The post object.
+	 * @param Template_Controller $template_controller The template controller instance.
+	 * @return array The post data array.
+	 */
 	private function get_template_post( $post, $template_controller ) {
 
-		// TODO - restrict what's exposed
+		// TODO - restrict what's exposed.
 		$post_id = $post->ID;
 
 		$template_controller->set_post( $post );
+
+		$title_element          = $template_controller->element( 'title' );
+		$excerpt_element        = $template_controller->element( 'excerpt' );
+		$author_element         = $template_controller->element( 'author' );
+		$content_element        = $template_controller->element( 'content' );
+		$comment_count_element  = $template_controller->element( 'comment_count' );
+		$featured_media_element = $template_controller->element( 'featured_media' );
+		$post_type_element      = $template_controller->element( 'post_type' );
+
 		$post_data = array(
 			'id'             => $post_id,
-			'title'          => $template_controller->element( 'title' )->get_data( $post ),
-			'excerpt'        => $template_controller->element( 'excerpt' )->get_data( $post ),
-			'author'         => $template_controller->element( 'author' )->get_data( $post ),
-			'content'        => $template_controller->element( 'content' )->get_data( $post ),
+			'title'          => $title_element ? $title_element->get_data( $post ) : '',
+			'excerpt'        => $excerpt_element ? $excerpt_element->get_data( $post ) : '',
+			'author'         => $author_element ? $author_element->get_data( $post ) : '',
+			'content'        => $content_element ? $content_element->get_data( $post ) : '',
 			'published_date' => $post->post_date,
 			'modified_date'  => $post->post_modified,
 			'taxonomy'       => $post_id,
 			'link'           => $post_id,
-			'comment_count'  => $template_controller->element( 'comment_count' )->get_data( $post ),
-			'featured_media' => $template_controller->element( 'featured_media' )->get_data( $post ),
-			'post_type'      => $template_controller->element( 'post_type' )->get_data( $post ),
+			'comment_count'  => $comment_count_element ? $comment_count_element->get_data( $post ) : '',
+			'featured_media' => $featured_media_element ? $featured_media_element->get_data( $post ) : '',
+			'post_type'      => $post_type_element ? $post_type_element->get_data( $post ) : '',
 		);
 		return $post_data;
 	}
 
-	/*
-	 * Get the posts generated from a layout query
+	/**
+	 * Get the posts generated from a layout query.
 	 *
-	 * @param WP_REST_Request $request
+	 * @since 1.0.0
+	 * @param \WP_REST_Request $request The REST request object.
+	 * @return \WP_REST_Response The REST response.
 	 */
 	public function get_layout_template_results( \WP_REST_Request $request ) {
 		$query_params      = $request->get_params();
@@ -512,6 +568,13 @@ class Rest_API {
 		return rest_ensure_response( $posts );
 	}
 
+	/**
+	 * Get layout query results.
+	 *
+	 * @since 1.0.0
+	 * @param \WP_REST_Request $request The REST request object.
+	 * @return \WP_REST_Response The REST response.
+	 */
 	public function get_layout_query_results( \WP_REST_Request $request ) {
 		$query_params      = $request->get_params();
 		$layout_id         = $query_params['layout_id'];
@@ -527,16 +590,21 @@ class Rest_API {
 		return rest_ensure_response( $posts );
 	}
 
-
+	/**
+	 * Get post type results based on query parameters.
+	 *
+	 * @since 1.0.0
+	 * @param \WP_REST_Request $request The REST request object.
+	 * @return \WP_REST_Response The REST response.
+	 */
 	public function get_post_type_results( \WP_REST_Request $request ) {
 
-		// TODO - check to ensure the post types are public / rest enabled only
+		// TODO - check to ensure the post types are public / rest enabled only.
 		$query_params = $request->get_params();
 		$tax_query    = array();
 
-		// for now we restrcture the received taxonomy_query format
-		// used in WP_Query
-
+		// For now we restructure the received taxonomy_query format.
+		// Used in WP_Query.
 		if ( isset( $query_params['taxonomy_query'] ) ) {
 			$tax_query = Layout_Controller::parse_tax_query( $query_params['taxonomy_query'] );
 		}
@@ -550,21 +618,21 @@ class Rest_API {
 			'search_filter_id'    => 0,
 			'tax_query'           => array(),
 		);
-		// we want to change tax_query from our JS structure, to native WP_Query structure
+		// We want to change tax_query from our JS structure, to native WP_Query structure.
 		$query_args              = wp_parse_args( $query_params, $defaults );
-		$query_args['tax_query'] = $tax_query; // copy over the new tax_query
+		$query_args['tax_query'] = $tax_query; // Copy over the new tax_query.
 		if ( isset( $query_args['_locale'] ) ) {
 			unset( $query_args['_locale'] );
 		}
 
-		// TODO - need to standardise our queries across everything - use camelCase like in S&F
+		// TODO - need to standardise our queries across everything - use camelCase like in S&F.
 
-		// resume normal stuff
+		// Resume normal stuff.
 		if ( isset( $query_params['ignore_sticky_posts'] ) ) {
 			$query_args['ignore_sticky_posts'] = $query_params['ignore_sticky_posts'] === 'yes' ? true : false;
 		}
 
-		// TODO
+		// TODO.
 		// if ( isset( $query_params[ 'author__in' ] ) ) {
 		// $query_args[ 'author__in' ] = array_map( 'intval', $query_params[ 'author__in' ] );
 		// }
@@ -578,27 +646,41 @@ class Rest_API {
 		$posts = $this->get_template_posts_from_query( $query );
 		return rest_ensure_response( $posts );
 	}
+
+	/**
+	 * Get a single post result.
+	 *
+	 * @since 1.0.0
+	 * @param \WP_REST_Request $request The REST request object.
+	 * @return \WP_REST_Response The REST response.
+	 */
 	public function get_post_result( \WP_REST_Request $request ) {
 
-		// TODO - check to ensure the post types are public / rest enabled only
+		// TODO - check to ensure the post types are public / rest enabled only.
 		$query_params = $request->get_params();
 		$tax_query    = array();
 
-		// For now we restrcture the received taxonomy_query taxonomy_query format
-		// used in WP_Query
+		// For now we restructure the received taxonomy_query taxonomy_query format.
+		// Used in WP_Query.
 		$post_id = $query_params['post_id'];
 		$post    = get_post( $post_id );
 
-		$template_controller = new Template_Controller( '' );
+		$template_controller = new Template_Controller( 0 );
 
 		$post_with_data = $this->get_template_post( $post, $template_controller );
 		return rest_ensure_response( $post_with_data );
 	}
 
-	// Fuzzy text search for any public post type
+	/**
+	 * Fuzzy text search for any public post type.
+	 *
+	 * @since 1.0.0
+	 * @param \WP_REST_Request $request The REST request object.
+	 * @return \WP_REST_Response The REST response.
+	 */
 	public function search_posts( \WP_REST_Request $request ) {
 
-		// TODO - check to ensure the post types are public / rest enabled only
+		// TODO - check to ensure the post types are public / rest enabled only.
 		$query_params = $request->get_params();
 		$args         = array(
 			'public' => true,
@@ -631,7 +713,7 @@ class Rest_API {
 		}
 
 		foreach ( $query->posts as $post ) {
-			// TODO - restrict what's exposed
+			// TODO - restrict what's exposed.
 			$post_id = $post->ID;
 			array_push(
 				$result,
@@ -645,7 +727,13 @@ class Rest_API {
 		return rest_ensure_response( $result );
 	}
 
-	// Get all unique custom field keys
+	/**
+	 * Get all unique custom field keys.
+	 *
+	 * @since 1.0.0
+	 * @param \WP_REST_Request $request The REST request object.
+	 * @return \WP_REST_Response The REST response.
+	 */
 	public function get_custom_fields( \WP_REST_Request $request ) {
 		$search_term  = '';
 		$query_params = $request->get_params();
@@ -658,17 +746,37 @@ class Rest_API {
 		return rest_ensure_response( $result );
 	}
 
-	// Get all taxonomies
+	/**
+	 * Get all taxonomies.
+	 *
+	 * @since 1.0.0
+	 * @param \WP_REST_Request $request The REST request object.
+	 * @return \WP_REST_Response The REST response.
+	 */
 	public function get_taxonomies( \WP_REST_Request $request ) {
 		$result = Settings::get_taxonomies();
 		return rest_ensure_response( $result );
 	}
-	/* Get all image sizes */
+
+	/**
+	 * Get all image sizes.
+	 *
+	 * @since 1.0.0
+	 * @param \WP_REST_Request $request The REST request object.
+	 * @return \WP_REST_Response The REST response.
+	 */
 	public function get_image_sizes( \WP_REST_Request $request ) {
 		$result = Settings::get_all_image_sizes();
 		return rest_ensure_response( $result );
 	}
-	/* Get the custom field value for a particular custom field belong to a post */
+
+	/**
+	 * Get the custom field value for a particular custom field belonging to a post.
+	 *
+	 * @since 1.0.0
+	 * @param \WP_REST_Request $request The REST request object.
+	 * @return \WP_REST_Response The REST response.
+	 */
 	public function get_custom_field_data( \WP_REST_Request $request ) {
 
 		$query_params            = $request->get_params();
@@ -681,34 +789,51 @@ class Rest_API {
 			$custom_field_value = $custom_field_meta_value;
 		}
 
-		// in case we are dealing with html in a custom field, make sure it's safe:
+		// In case we are dealing with HTML in a custom field, make sure it's safe.
 		$custom_field_value = wp_kses_post( $custom_field_value );
 
 		return rest_ensure_response( $custom_field_value );
 	}
 
-	/* Get the terms belonging to multiple taxonomies */
+	/**
+	 * Get the terms belonging to multiple taxonomies.
+	 *
+	 * @since 1.0.0
+	 * @param \WP_REST_Request $request The REST request object.
+	 * @return \WP_REST_Response The REST response.
+	 */
 	public function get_taxonomies_term_data( \WP_REST_Request $request ) {
 
 		$query_params = $request->get_params();
 		$tax_query    = array();
 
-		// for now we restrcture the received taxonomy_query taxonomy_query format
-		// used in WP_Query
+		// For now we restructure the received taxonomy_query taxonomy_query format.
+		// Used in WP_Query.
 		$post_id    = $query_params['post_id'];
 		$taxonomies = $query_params['taxonomies'];
 		$order_by   = $query_params['order_by'];
 		$order_dir  = $query_params['order_dir'];
 		$max_number = $query_params['max_number'];
 
-		$template_controller = new Template_Controller( '' );
+		$template_controller = new Template_Controller( 0 );
 		$post                = get_post( $post_id );
 		$template_controller->set_post( $post );
-		$taxonomy_data = $template_controller->element( 'taxonomy' )->get_data( $post, $taxonomies, $order_by, $order_dir, $max_number );
+		$element = $template_controller->element( 'taxonomy' );
+		if ( ! $element ) {
+			return rest_ensure_response( array() );
+		}
+		$taxonomy_data = $element->get_data( $post, $taxonomies, $order_by, $order_dir, $max_number );
 
 		return rest_ensure_response( $taxonomy_data );
 	}
 
+	/**
+	 * Get all unique post meta keys from the database.
+	 *
+	 * @since 1.0.0
+	 * @param string $search_term Optional search term to filter keys.
+	 * @return array Array of meta keys.
+	 */
 	private function get_all_post_meta_keys( $search_term = '' ) {
 		$ignore_list = array(
 			'_wp_page_template',
@@ -738,11 +863,6 @@ class Rest_API {
 		global $wpdb;
 		$data = array();
 
-		$where = '';
-		if ( $search_term !== '' ) {
-			$where = $wpdb->prepare( " WHERE meta_key LIKE '%s' ", '%' . $search_term . '%' );
-		}
-
 		$case_sensitive = true;
 		if ( defined( 'CUSTOM_LAYOUTS_CASE_SENSITIVE_CUSTOM_FIELDS' ) ) {
 			if ( CUSTOM_LAYOUTS_CASE_SENSITIVE_CUSTOM_FIELDS === false ) {
@@ -750,40 +870,64 @@ class Rest_API {
 			}
 		}
 
-		if ( $case_sensitive ) {
-			$query = $wpdb->query(
-				"
-				SELECT DISTINCT(BINARY `meta_key`) as meta_key_binary, `meta_key`
-				FROM $wpdb->postmeta
-				$where
-				ORDER BY `meta_key` ASC
-				LIMIT 0, 15
-			"
-			);
+		if ( $search_term !== '' ) {
+			// Build query with WHERE clause using prepare().
+			if ( $case_sensitive ) {
+				$wpdb->get_results(
+					$wpdb->prepare(
+						"SELECT DISTINCT(BINARY `meta_key`) as meta_key_binary, `meta_key`
+						FROM $wpdb->postmeta
+						WHERE meta_key LIKE %s
+						ORDER BY `meta_key` ASC
+						LIMIT 0, 15",
+						'%' . $wpdb->esc_like( $search_term ) . '%'
+					)
+				);
+			} else {
+				$wpdb->get_results(
+					$wpdb->prepare(
+						"SELECT DISTINCT(`meta_key`)
+						FROM $wpdb->postmeta
+						WHERE meta_key LIKE %s
+						ORDER BY `meta_key` ASC
+						LIMIT 0, 15",
+						'%' . $wpdb->esc_like( $search_term ) . '%'
+					)
+				);
+			}
 		} else {
-			$query = $wpdb->query(
-				"
-				SELECT DISTINCT(`meta_key`) 
-				FROM $wpdb->postmeta
-				$where
-				ORDER BY `meta_key` ASC
-				LIMIT 0, 15
-			"
-			);
+			// Build query without WHERE clause - no need for prepare().
+			if ( $case_sensitive ) {
+				$wpdb->get_results(
+					"SELECT DISTINCT(BINARY `meta_key`) as meta_key_binary, `meta_key`
+					FROM $wpdb->postmeta
+					ORDER BY `meta_key` ASC
+					LIMIT 0, 15"
+				);
+			} else {
+				$wpdb->get_results(
+					"SELECT DISTINCT(`meta_key`)
+					FROM $wpdb->postmeta
+					ORDER BY `meta_key` ASC
+					LIMIT 0, 15"
+				);
+			}
 		}
 
 		foreach ( $wpdb->last_result as $k => $v ) {
-			// $data[$v->meta_key] =   $v->meta_value;
+			// $data[$v->meta_key] =   $v->meta_value;.
 			$data[] = $v->meta_key;
 		}
 
 		return $data;
 	}
 
-	/*
-	 * Get all the layout info - something similar to editorSettings
+	/**
+	 * Get all the layout info - something similar to editorSettings.
 	 *
-	 * @param WP_REST_Request $request
+	 * @since 1.0.0
+	 * @param \WP_REST_Request $request The REST request object.
+	 * @return \WP_REST_Response The REST response.
 	 */
 	public function get_layout_info( \WP_REST_Request $request ) {
 
@@ -796,10 +940,13 @@ class Rest_API {
 		$layout_info = apply_filters( 'custom-layouts/admin/layout_info', $layout_info );
 		return rest_ensure_response( $layout_info );
 	}
-	/*
-	 * Get all the layout info - something similar to editorSettings
+
+	/**
+	 * Get all the template info - something similar to editorSettings.
 	 *
-	 * @param WP_REST_Request $request
+	 * @since 1.0.0
+	 * @param \WP_REST_Request $request The REST request object.
+	 * @return \WP_REST_Response The REST response.
 	 */
 	public function get_template_info( \WP_REST_Request $request ) {
 
@@ -808,13 +955,20 @@ class Rest_API {
 		return rest_ensure_response( $template_info );
 	}
 
+	/**
+	 * Set layout info (e.g., breakpoints).
+	 *
+	 * @since 1.0.0
+	 * @param \WP_REST_Request $request The REST request object.
+	 * @return \WP_REST_Response The REST response.
+	 */
 	public function set_layout_info( \WP_REST_Request $request ) {
 		$query_params        = $request->get_params();
 		$allowed_breakpoints = array( 'medium', 'small', 'xsmall' );
 		if ( isset( $query_params['breakpoints'] ) ) {
 			$new_break_points = array();
 			foreach ( $query_params['breakpoints'] as $device_type => $breakpoint ) {
-				if ( in_array( $device_type, $allowed_breakpoints ) ) {
+				if ( in_array( $device_type, $allowed_breakpoints, true ) ) {
 					$new_break_points[ $device_type ] = absint( $breakpoint );
 				}
 			}
@@ -823,14 +977,16 @@ class Rest_API {
 			CSS_Loader::save_css();
 		}
 
-		// refresh the options
+		// Refresh the options.
 		return $this->get_layout_info( $request );
 	}
 
-	/*
-	 * Get all the templates stored
+	/**
+	 * Get all the templates stored.
 	 *
-	 * @param WP_REST_Request $request
+	 * @since 1.0.0
+	 * @param \WP_REST_Request $request The REST request object.
+	 * @return \WP_REST_Response The REST response.
 	 */
 	public function get_templates_options( \WP_REST_Request $request ) {
 
@@ -843,10 +999,13 @@ class Rest_API {
 		$templates = Settings::get_templates_options( $language );
 		return rest_ensure_response( $templates );
 	}
-	/*
-	 * Get all the layouts stored
+
+	/**
+	 * Get all the layouts stored.
 	 *
-	 * @param WP_REST_Request $request
+	 * @since 1.0.0
+	 * @param \WP_REST_Request $request The REST request object.
+	 * @return \WP_REST_Response The REST response.
 	 */
 	public function get_layouts_options( \WP_REST_Request $request ) {
 
@@ -855,17 +1014,39 @@ class Rest_API {
 		return rest_ensure_response( $layouts );
 	}
 
+	/**
+	 * Get all public post types.
+	 *
+	 * @since 1.0.0
+	 * @param \WP_REST_Request $request The REST request object.
+	 * @return \WP_REST_Response The REST response.
+	 */
 	public function get_post_types( \WP_REST_Request $request ) {
 
 		$post_types = Settings::get_public_post_types();
 		return rest_ensure_response( $post_types );
 	}
+
+	/**
+	 * Get all authors.
+	 *
+	 * @since 1.0.0
+	 * @param \WP_REST_Request $request The REST request object.
+	 * @return \WP_REST_Response The REST response.
+	 */
 	public function get_authors( \WP_REST_Request $request ) {
 
 		$authors = Settings::get_authors();
 		return rest_ensure_response( $authors );
 	}
 
+	/**
+	 * Get taxonomy terms for a specific taxonomy.
+	 *
+	 * @since 1.0.0
+	 * @param \WP_REST_Request $request The REST request object.
+	 * @return \WP_REST_Response The REST response.
+	 */
 	public function get_taxonomy_terms( \WP_REST_Request $request ) {
 		$query_params  = $request->get_params();
 		$taxonomy_name = $query_params['taxonomy_name'];
@@ -878,9 +1059,9 @@ class Rest_API {
 		$taxonomy_terms = get_terms( $args );
 		$terms          = array();
 		if ( is_wp_error( $taxonomy_terms ) ) {
-			$terms = $taxonomy_terms; // send the error back
+			$terms = $taxonomy_terms; // Send the error back.
 		} else {
-			// loop through the terms and get slug + label
+			// Loop through the terms and get slug + label.
 			foreach ( $taxonomy_terms as $term ) {
 				$term = array(
 					'label' => $term->name,
@@ -892,19 +1073,32 @@ class Rest_API {
 		return rest_ensure_response( $terms );
 	}
 
+	/**
+	 * Get template sources (post types).
+	 *
+	 * @since 1.0.0
+	 * @param \WP_REST_Request $request The REST request object.
+	 * @return \WP_REST_Response The REST response.
+	 */
 	public function get_template_sources( \WP_REST_Request $request ) {
 
 		$post_types = Settings::get_public_post_types();
-		// $layouts = Settings::get_layouts_options();
+		// $layouts = Settings::get_layouts_options();.
 		$data = array(
 			'post_types' => $post_types,
-			// 'layouts'    => $layouts,
+			// 'layouts'    => $layouts,.
 
 		);
 		return rest_ensure_response( $data );
 	}
 
-	// rebuilds the CSS file
+	/**
+	 * Rebuilds the CSS file.
+	 *
+	 * @since 1.0.0
+	 * @param \WP_REST_Request $request The REST request object.
+	 * @return \WP_REST_Response The REST response.
+	 */
 	public function regenerate_css( \WP_REST_Request $request ) {
 		CSS_Loader::save_css();
 		$regenerate_info = array(
@@ -913,13 +1107,20 @@ class Rest_API {
 		return rest_ensure_response( $regenerate_info );
 	}
 
+	/**
+	 * Get a template by ID.
+	 *
+	 * @since 1.0.0
+	 * @param \WP_REST_Request $request The REST request object.
+	 * @return \WP_REST_Response The REST response.
+	 */
 	public function get_template( \WP_REST_Request $request ) {
 
 		$query_params = $request->get_params();
 		$template_id  = $query_params['id'];
 
 		if ( $template_id === 0 ) {
-			// load template settings
+			// Load template settings.
 			$default_template = Settings::get_default_template();
 			$data             = array(
 				'instances'     => $default_template['instances'],
@@ -940,18 +1141,26 @@ class Rest_API {
 		}
 		return rest_ensure_response( $data );
 	}
+
+	/**
+	 * Get a layout by ID.
+	 *
+	 * @since 1.0.0
+	 * @param \WP_REST_Request $request The REST request object.
+	 * @return \WP_REST_Response The REST response.
+	 */
 	public function get_layout( \WP_REST_Request $request ) {
 
 		$query_params = $request->get_params();
 		$layout_id    = $query_params['id'];
 
 		if ( $layout_id === 0 ) {
-			// load template settings
+			// Load template settings.
 			$default_layout = Settings::get_default_layout();
 			$data           = $default_layout;
 		} else {
 
-			// TODO - refactor
+			// TODO - refactor.
 			$layout          = Settings::get_section_data( $layout_id, 'layout' );
 			$query           = Settings::get_section_data( $layout_id, 'query' );
 			$layout_settings = array();
@@ -971,6 +1180,14 @@ class Rest_API {
 		}
 		return rest_ensure_response( $data );
 	}
+
+	/**
+	 * Save a template.
+	 *
+	 * @since 1.0.0
+	 * @param \WP_REST_Request $request The REST request object.
+	 * @return \WP_REST_Response The REST response.
+	 */
 	public function save_template( \WP_REST_Request $request ) {
 
 		$query_params = $request->get_params();
@@ -990,6 +1207,7 @@ class Rest_API {
 				'post_status'  => 'publish',
 			);
 
+			/** @var int|\WP_Error $result */
 			$result = wp_insert_post( $post_data );
 
 			if ( is_wp_error( $result ) ) {
@@ -1018,12 +1236,7 @@ class Rest_API {
 
 		CSS_Loader::save_css( array( $template_id ) );
 
-		$response = array(
-			/*
-			 'instances' => $instances,
-			'instanceOrder' => $instance_order,
-			'template' => $template_data, */
-		);
+		$response = array();
 
 		if ( $is_new ) {
 			$response['id'] = $template_id;
@@ -1031,10 +1244,17 @@ class Rest_API {
 		return rest_ensure_response( $response );
 	}
 
+	/**
+	 * Save a layout.
+	 *
+	 * @since 1.0.0
+	 * @param \WP_REST_Request $request The REST request object.
+	 * @return \WP_REST_Response The REST response.
+	 */
 	public function save_layout( \WP_REST_Request $request ) {
 
 		// TODO - all these save processes need refactoring and centralising
-		// consider finishing that settings api :/
+		// consider finishing that settings API.
 		$query_params = $request->get_params();
 		$layout_id    = $query_params['id'];
 		$is_new       = false;
@@ -1052,6 +1272,7 @@ class Rest_API {
 				'post_status'  => 'publish',
 			);
 
+			/** @var int|\WP_Error $result */
 			$result = wp_insert_post( $post_data );
 
 			if ( is_wp_error( $result ) ) {
@@ -1067,10 +1288,10 @@ class Rest_API {
 
 		$attributes = $query_params['attributes'];
 
-		// now we want to map the data back to php format
+		// Now we want to map the data back to PHP format.
 		$attributes = Gutenberg::map_attributes( 'js', $attributes );
 
-		// and then split into query + layout according to the settings
+		// And then split into query + layout according to the settings.
 		$layout_keys = array_keys( Settings::get_settings_defaults( array( 'layout' ) ) );
 		$query_keys  = array_keys( Settings::get_settings_defaults( array( 'query' ) ) );
 
@@ -1107,10 +1328,11 @@ class Rest_API {
 		return rest_ensure_response( $response );
 	}
 
-	/*
-	 * Check request permissions
+	/**
+	 * Check request permissions.
 	 *
-	 * @return bool
+	 * @since 1.0.0
+	 * @return bool True if user has permission, false otherwise.
 	 */
 	public function permissions() {
 		return current_user_can( 'manage_options' );

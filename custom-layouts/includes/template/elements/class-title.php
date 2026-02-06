@@ -23,9 +23,16 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Title extends Element_Base {
 
-	private $post;
-
-	public function render( $post, $instance, $template, $return = false ) {
+	/**
+	 * Render the title element.
+	 *
+	 * @param \WP_Post $post Post object.
+	 * @param array    $instance Element instance data.
+	 * @param array    $template Template data.
+	 * @param bool     $return_output Whether to return the output instead of echoing.
+	 * @return string|void The output if $return_output is true, void otherwise.
+	 */
+	public function render( $post, $instance, $template, $return_output = false ) {
 
 		$instance_data = $instance['data'];
 		$element_type  = $instance['elementId'];
@@ -52,28 +59,43 @@ class Title extends Element_Base {
 		$output = $this->wrap_container( $output, $instance );
 		$output = parent::run_post_render_hooks( $output, $element_type, $instance_data, $post, $template );
 
-		if ( $return ) {
+		if ( $return_output ) {
 			return $output;
 		}
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Output is pre-escaped by wp_kses_post() and parent::run_post_render_hooks()
 		echo $output;
 	}
 
+	/**
+	 * Get the title for a post.
+	 *
+	 * @param \WP_Post $post Post object.
+	 * @return string The post title.
+	 */
 	public function get_data( $post ) {
 		return get_the_title( $post->ID );
 	}
 
+	/**
+	 * Get CSS for the title element.
+	 *
+	 * @param array  $instance Element instance data.
+	 * @param string $template_class Template CSS class.
+	 * @param array  $template Template data.
+	 * @return string The generated CSS.
+	 */
 	public function get_css( $instance, $template_class, $template = array() ) {
 		$instance_class = $this->get_instance_class( $instance['id'] );
 		$instance_data  = $instance['data'];
 
 		$font_family = $instance_data['fontFamily'];
 
-		// Container CSS
+		// Container CSS.
 		$parent_selector = $template_class . ' ' . $instance_class;
 		$css             = '/* ' . $instance['elementId'] . ' */';
 		$css            .= $this->create_container_css( $parent_selector, $instance_data );
 
-		// now add link styles
+		// Now add link styles.
 		$full_child_selector = $template_class . ' ' . $instance_class . ' .cl-element-title__anchor';
 		$link_styles         = $this->take_array_elements(
 			array(
@@ -91,7 +113,7 @@ class Title extends Element_Base {
 		$css .= 'display:inline-block;line-height:inherit;';
 		$css .= '}';
 
-		// add styles to link hover/active/etc
+		// Add styles to link hover/active/etc.
 		$hover_settings = $this->take_array_elements(
 			array(
 				'fontFormatBoldHover',
@@ -111,6 +133,4 @@ class Title extends Element_Base {
 
 		return $css;
 	}
-
-
 }

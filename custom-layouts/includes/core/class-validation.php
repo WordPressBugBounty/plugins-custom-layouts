@@ -1,4 +1,11 @@
 <?php
+/**
+ * Validation utilities class
+ *
+ * @package    Custom_Layouts
+ * @since      1.0.0
+ */
+
 namespace Custom_Layouts\Core;
 
 /**
@@ -19,6 +26,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Validation {
 
+	/**
+	 * List of allowed HTML tags for validation.
+	 *
+	 * @var array
+	 */
 	private static $html_tags = array(
 		'a',
 		'abbr',
@@ -130,11 +142,24 @@ class Validation {
 
 	);
 
+	/**
+	 * Initialize the validation class.
+	 *
+	 * @since 1.0.0
+	 * @return void
+	 */
 	public static function init() {
-
 	}
+
+	/**
+	 * Escape and validate an HTML tag name.
+	 *
+	 * @since 1.0.0
+	 * @param string $input The tag name to validate.
+	 * @return string The validated tag name or empty string if invalid.
+	 */
 	public static function esc_html_tag( $input ) {
-		if ( in_array( $input, self::$html_tags ) ) {
+		if ( in_array( $input, self::$html_tags, true ) ) {
 			return $input;
 		}
 		return '';

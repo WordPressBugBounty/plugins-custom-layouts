@@ -1,1 +1,10 @@
-<?php // Silence is golden
+<?php
+/**
+ * Gutenberg integration directory index file.
+ *
+ * Prevents directory browsing.
+ *
+ * @package Custom_Layouts
+ */
+
+// Silence is golden.

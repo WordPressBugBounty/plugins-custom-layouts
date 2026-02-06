@@ -1,9 +1,17 @@
 <?php
+/**
+ * Admin functionality class
+ *
+ * @package    Custom_Layouts
+ * @since      1.0.0
+ */
+
 namespace Custom_Layouts;
 
 use Custom_Layouts\Settings;
 use Custom_Layouts\Core\CSS_Loader;
 use Custom_Layouts\Integrations\Gutenberg;
+use Custom_Layouts\Asset_Loader;
 
 /**
  * The admin-specific functionality of the plugin.
@@ -20,6 +28,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * The admin-specific functionality of the plugin.
+ *
+ * Defines the plugin name, version, and hooks for managing admin area functionality.
+ *
+ * @since      1.0.0
+ * @package    Custom_Layouts
+ * @subpackage Custom_Layouts/includes
+ */
 class Admin {
 
 	/**
@@ -28,6 +45,7 @@ class Admin {
 	 * @since    1.0.0
 	 * @access   private
 	 * @var      string    $plugin_name    The ID of this plugin.
+	 * @phpstan-ignore property.onlyWritten
 	 */
 	private $plugin_name;
 
@@ -39,18 +57,18 @@ class Admin {
 	 * @since    1.0.0
 	 * @access   private
 	 * @var      string    $version    The current version of this plugin.
+	 * @phpstan-ignore property.onlyWritten
 	 */
 	private $version;
 
 	/**
-	 * The stored value after checking if the current admin screen is a valid S&F admin screen
+	 * Flag to determine if CSS should be regenerated
 	 *
 	 * @since    1.0.0
 	 * @access   private
-	 * @var      string    $version    The current version of this plugin.
+	 * @var      bool    $should_regenerate_css    Whether to regenerate CSS.
 	 */
-	private $is_custom_layouts_admin_screen = -1;
-	private $is_custom_layouts_edit_screen  = -1;
+	private $should_regenerate_css = false;
 
 	/**
 	 * Initialize the class and set its properties.
@@ -60,28 +78,32 @@ class Admin {
 	 * @param      string $version    The version of this plugin.
 	 */
 	public function __construct( $plugin_name, $version ) {
-		$this->plugin_name           = $plugin_name;
-		$this->version               = $version;
-		$this->should_regenerate_css = false;
+		$this->plugin_name = $plugin_name;
+		$this->version     = $version;
 
 		add_action( 'save_post_cl-layout', array( $this, 'save_post_layout' ), 20, 2 );
 		add_action( 'save_post_cl-template', array( $this, 'save_post_template' ), 20, 2 );
-		add_action( 'delete_post', array( $this, 'delete_post_template' ), 20, 2 );
-		add_action( 'wp_trash_post', array( $this, 'delete_post_template' ), 20, 2 );
-		add_action( 'shutdown', array( $this, 'shutdown' ), 20, 2 );
+		add_action( 'delete_post', array( $this, 'delete_post_template' ), 20, 1 );
+		add_action( 'wp_trash_post', array( $this, 'delete_post_template' ), 20, 1 );
+		add_action( 'shutdown', array( $this, 'shutdown' ), 20, 0 );
 		add_filter( 'redirect_post_location', array( $this, 'redirect_post_location' ), 20, 2 );
 
-		// add custom columns to layout edit
+		// Add custom columns to layout edit.
 		add_filter( 'manage_edit-cl-layout_columns', array( $this, 'set_custom_layout_columns' ) );
 		add_action( 'manage_cl-layout_posts_custom_column', array( $this, 'custom_layout_column' ), 10, 2 );
+
+		// Initialize Asset Loader.
+		add_action( 'init', array( $this, 'register_assets' ), 5 );
 	}
 
 	/**
-	 * Add column to admin posts page for Layouts
+	 * Add column to admin posts page for Layouts.
 	 *
 	 * @since    1.4.0
+	 * @param    array $columns  The columns array.
+	 * @return   array           Modified columns array.
 	 */
-	function set_custom_layout_columns( $columns ) {
+	public function set_custom_layout_columns( $columns ) {
 		$column  = array(
 			'template' => __( 'Template', 'custom-layouts' ),
 		);
@@ -90,27 +112,39 @@ class Admin {
 	}
 
 	/**
-	 * Insert value at a position in an assoc array
+	 * Insert value at a position in an assoc array.
 	 *
 	 * @since    1.4.0
+	 * @param    array $arr       The array to insert into.
+	 * @param    array $insert    The value to insert.
+	 * @param    int   $position  The position to insert at.
+	 * @return   array            The modified array.
 	 */
-	function insert_value_at( $arr, $insert, $position ) {
-		// TODO - move into a utility class
+	public function insert_value_at( $arr, $insert, $position ) {
+		// TODO - move into a utility class.
 		$i         = 0;
 		$new_array = array();
 		foreach ( $arr as $key => $value ) {
-			if ( $i == $position ) {
+			if ( $i === $position ) {
 				foreach ( $insert as $ikey => $ivalue ) {
 					$new_array[ $ikey ] = $ivalue;
 				}
 			}
 			$new_array[ $key ] = $value;
-			$i++;
+			++$i;
 		}
 		return $new_array;
 	}
 
-	function custom_layout_column( $column, $post_id ) {
+	/**
+	 * Custom layout column.
+	 *
+	 * @since 1.4.0
+	 * @param string $column The column name.
+	 * @param int    $post_id The post ID.
+	 * @return void
+	 */
+	public function custom_layout_column( $column, $post_id ) {
 		switch ( $column ) {
 			case 'template':
 				$layout_settings = Settings::get_section_data( $post_id, 'layout' );
@@ -119,53 +153,144 @@ class Admin {
 					if ( $layout_settings['template_id'] === 'default' ) {
 						echo 'Default';
 					} else {
-						echo '<a href="' . esc_url( get_edit_post_link( $layout_settings['template_id'] ) ) . '">' . get_the_title( $layout_settings['template_id'] ) . '</a>';
+						echo '<a href="' . esc_url( get_edit_post_link( $layout_settings['template_id'] ) ) . '">' . esc_html( get_the_title( $layout_settings['template_id'] ) ) . '</a>';
 					}
 				}
 				break;
 		}
 	}
 	/**
-	 * Regenerate the css if necessary, do it only once on shutdown
+	 * Regenerate the css if necessary, do it only once on shutdown.
 	 *
 	 * @since    1.0.0
+	 * @return   void
 	 */
 	public function shutdown() {
 		if ( $this->should_regenerate_css ) {
 			CSS_Loader::save_css();
 		}
 	}
+
+	/**
+	 * Register all assets using the Asset_Loader.
+	 *
+	 * @since    1.0.0
+	 * @return   void
+	 */
+	public function register_assets() {
+		// Initialize the Asset_Loader.
+		global $pagenow;
+		$gutenberg_dependencies = array( 'custom-layouts-frontend', 'masonry', 'imagesloaded' );
+		if ( $pagenow === 'site-editor.php' ) {
+			$gutenberg_dependencies[] = 'wp-edit-site';
+		} else {
+			$gutenberg_dependencies[] = 'wp-edit-post';
+		}
+
+		// Register all admin assets.
+		$asset_configs = array(
+			array(
+				'name'   => 'custom-layouts-settings',
+				'script' => array(
+					'src'        => CUSTOM_LAYOUTS_URL . 'assets/admin/settings.js',
+					'asset_path' => CUSTOM_LAYOUTS_PATH . 'assets/admin/settings.asset.php',
+					// 'dependencies' => array( 'custom-layouts-frontend' ), // Additional dependencies.
+					'footer'     => true,
+
+					/*
+					'data'         => array(
+						'identifier' => 'window.searchAndFilter.admin',
+						'value'      => $admin_data,
+						'position'   => 'before',
+					),
+					*/
+				),
+				'style'  => array(
+					'src'          => CUSTOM_LAYOUTS_URL . 'assets/admin/settings.css',
+					'dependencies' => array( 'wp-components', 'wp-editor-font', 'wp-block-editor', 'wp-format-library', 'dashicons' ),
+				),
+			),
+			array(
+				'name'   => 'custom-layouts-layout',
+				'script' => array(
+					'src'          => CUSTOM_LAYOUTS_URL . 'assets/admin/layout.js',
+					'asset_path'   => CUSTOM_LAYOUTS_PATH . 'assets/admin/layout.asset.php',
+					'footer'       => true,
+					'dependencies' => array( 'custom-layouts-frontend', 'wp-edit-post', 'imagesloaded', 'masonry' ),
+				),
+				'style'  => array(
+					'src'          => CUSTOM_LAYOUTS_URL . 'assets/admin/layout.css',
+					'dependencies' => array( 'wp-components', 'wp-editor-font', 'wp-block-editor', 'wp-format-library', 'dashicons' ),
+				),
+			),
+			array(
+				'name'   => 'custom-layouts-template',
+				'script' => array(
+					'src'          => CUSTOM_LAYOUTS_URL . 'assets/admin/template.js',
+					'asset_path'   => CUSTOM_LAYOUTS_PATH . 'assets/admin/template.asset.php',
+					'footer'       => true,
+					'dependencies' => array( 'wp-edit-post' ),
+				),
+				'style'  => array(
+					'src'          => CUSTOM_LAYOUTS_URL . 'assets/admin/template.css',
+					'dependencies' => array( 'wp-components', 'wp-editor-font', 'wp-block-editor', 'wp-format-library', 'dashicons' ),
+				),
+			),
+			array(
+				'name'   => 'custom-layouts-gutenberg',
+				'script' => array(
+					'src'          => CUSTOM_LAYOUTS_URL . 'assets/admin/gutenberg.js',
+					'asset_path'   => CUSTOM_LAYOUTS_PATH . 'assets/admin/gutenberg.asset.php',
+					'footer'       => true,
+					'dependencies' => $gutenberg_dependencies,
+				),
+				'style'  => array(
+					'src'          => CUSTOM_LAYOUTS_URL . 'assets/admin/gutenberg.css',
+					'dependencies' => array( 'custom-layouts-frontend', 'wp-components', 'wp-editor-font', 'wp-block-editor', 'wp-format-library', 'dashicons' ),
+				),
+			),
+			array(
+				'name'   => 'custom-layouts-frontend',
+				'script' => array(
+					'src'          => CUSTOM_LAYOUTS_URL . 'assets/frontend/app.js',
+					'asset_path'   => CUSTOM_LAYOUTS_PATH . 'assets/frontend/app.asset.php',
+					'footer'       => true,
+					'dependencies' => array( 'imagesloaded', 'masonry' ),
+				),
+				'style'  => array(
+					'src' => CUSTOM_LAYOUTS_URL . 'assets/frontend/app.css',
+				),
+			),
+		);
+
+		$assets = Asset_Loader::create_assets( $asset_configs );
+		Asset_Loader::register( $assets );
+	}
+
 	/**
 	 * Register the stylesheets for the admin area.
 	 *
 	 * @since    1.0.0
+	 * @return   void
 	 */
 	public function enqueue_styles() {
 
-		$css_file_ext = Util::get_file_ext( '.css' );
-
-		if ( $this->is_custom_layouts_settings() ) {
-			wp_enqueue_style( 'wp-components' );
-			wp_enqueue_style( 'dashicons' );
-			wp_enqueue_style( 'custom-layouts-admin', CUSTOM_LAYOUTS_URL . 'assets/css/admin/custom-layouts' . $css_file_ext, array( 'wp-components', 'wp-editor-font', 'wp-block-editor' ), CUSTOM_LAYOUTS_VERSION, 'all' );
-			return;
-		}
-		if ( ! $this->is_custom_layouts_edit_screen() ) {
+		if ( ! Util::screen_is_custom_layouts_edit() ) {
 			return;
 		}
 
-		// Fake trigger loading of styles.
+		// Trigger loading of block editor assets.
 		do_action( 'enqueue_block_editor_assets' );
 	}
 
 	/**
 	 * Update the URL after saving to include the last section the user
-	 * was viewing
-	 *
-	 * @param object $location  A string with the redirect URL.
-	 * @param int    $post_id   The post ID that has been updated.
+	 * was viewing.
 	 *
 	 * @since    1.0.0
+	 * @param    string $location  A string with the redirect URL.
+	 * @param    int    $post_id   The post ID that has been updated.
+	 * @return   string            The modified redirect URL.
 	 */
 	public function redirect_post_location( $location, $post_id ) {
 
@@ -176,22 +301,28 @@ class Admin {
 	}
 
 	/**
-	 * Add the admin pages
+	 * Add the admin pages.
 	 *
 	 * @since    1.0.0
+	 * @return   void
 	 */
-
 	public function admin_pages() {
 
 		// $icon = "dashicons-search";
 		// add_menu_page( 'Custom Layouts', 'Custom Layouts', 'manage_options', 'custom-layouts', array($this, 'custom_layouts_page'), $icon, '100.23243'  );
 	}
 
+	/**
+	 * Add additional menu items to the admin menu.
+	 *
+	 * @since    1.0.0
+	 * @return   void
+	 */
 	public function admin_pages_more_menu_items() {
 
 		$icon = 'dashicons-grid-view';
 
-		// TODO - remove the base64 - and just encode the result
+		// TODO - remove the base64 - and just encode the result.
 		$icon = 'data:image/svg+xml;base64,' . base64_encode(
 			'<svg
 		xmlns="http://www.w3.org/2000/svg"
@@ -215,36 +346,38 @@ class Admin {
 </svg>
 '
 		);
-		add_menu_page( __( 'Custom Layouts', 'custom-layouts' ), __( 'Custom Layouts', 'custom-layouts' ), 'manage_options', 'custom-layouts', array( $this, 'custom_layouts_page' ), $icon, '100.23242' );
+		add_menu_page( __( 'Custom Layouts', 'custom-layouts' ), __( 'Custom Layouts', 'custom-layouts' ), 'manage_options', 'custom-layouts', array( $this, 'custom_layouts_page' ), $icon, 100.23242 );
 		add_submenu_page( 'custom-layouts', 'Settings', 'Settings', 'manage_options', 'custom-layouts-settings', array( $this, 'custom_layouts_settings_page' ) );
 	}
 
 	/**
-	 * The main settings page
+	 * The main settings page.
 	 *
 	 * @since    1.0.0
+	 * @return   void
 	 */
 	public function custom_layouts_settings_page() {
 		include 'admin/settings-page.php';
 	}
+
 	/**
-	 * Register the JavaScript for the admin area.
+	 * Enqueue the scripts for the admin area.
 	 *
 	 * @since    1.0.0
+	 * @return   void
 	 */
 	public function enqueue_scripts() {
 
-		$file_ext = Util::get_file_ext( '.js' );
 		if ( $this->is_custom_layouts_settings() ) {
 			$preload_paths = array(
 				'/custom-layouts/v1/layout/info',
 			);
 			$this->preload_api_requests( $preload_paths );
 
-			wp_set_script_translations( $this->plugin_name . '-settings', 'custom-layouts' );
-			wp_enqueue_script( $this->plugin_name . '-settings', plugin_dir_url( dirname( __FILE__ ) ) . 'assets/js/admin/settings/custom-layouts' . $file_ext, array( 'wp-element', 'wp-components', 'wp-date', 'wp-compose', 'wp-data', 'wp-editor', 'wp-edit-post', 'wp-api-fetch', 'wp-plugins' ), $this->version, true );
+			// Enqueue settings assets using Asset_Loader.
+			Asset_Loader::enqueue( array( 'custom-layouts-settings' ) );
 			return;
-		} elseif ( $this->is_custom_layouts_edit_screen() ) {
+		} elseif ( Util::screen_is_custom_layouts_edit() ) {
 
 			global $post;
 			$post_id = $post->ID;
@@ -262,11 +395,9 @@ class Admin {
 				),
 			);
 
-			// script dependency list - https://developer.wordpress.org/block-editor/contributors/develop/scripts/
-
 			if ( Util::screen_is_layout_edit() ) {
-				wp_set_script_translations( $this->plugin_name . '-layout', 'custom-layouts' );
-				wp_enqueue_script( $this->plugin_name . '-layout', plugin_dir_url( dirname( __FILE__ ) ) . 'assets/js/admin/layout/custom-layouts' . $file_ext, array( 'wp-element', 'wp-components', 'wp-date', 'wp-compose', 'wp-data', 'wp-editor', 'wp-edit-post', 'wp-api-fetch' ), $this->version, true );
+				// Enqueue layout assets using Asset_Loader.
+				Asset_Loader::enqueue( array( 'custom-layouts-layout' ) );
 
 				$js_vars['settings']['query'] = Settings::get_settings_by_section( 'query', true );
 				$js_vars['settings']['grid']  = Settings::get_settings_by_section( 'layout', true );
@@ -289,7 +420,7 @@ class Admin {
 				}
 				$this->preload_api_requests( $preload_paths );
 
-				// TODO - refactor
+				// TODO - refactor.
 				$layout_settings = array();
 				if ( $js_vars['data']['query'] ) {
 					$layout_settings = array_merge( $layout_settings, $js_vars['data']['query'] );
@@ -301,16 +432,20 @@ class Admin {
 				$layout_settings           = wp_parse_args( $layout_settings, $layout_defaults );
 				$js_vars['data']['layout'] = Gutenberg::map_attributes( 'php', $layout_settings );
 
-				// $js_vars = apply_filters( 'custom-layouts/admin/js', $js_vars );
-				wp_localize_script( $this->plugin_name . '-layout', 'customLayouts', $js_vars );
+				// TODO - data should be added via the asset loader method.
+				wp_localize_script( 'custom-layouts-layout', 'customLayouts', $js_vars );
+
 			} elseif ( Util::screen_is_template_edit() ) {
+				// Load the template assets & data.
+
 				$preload_paths = array(
 					'/custom-layouts/v1/template/sources',
 				);
 				$this->preload_api_requests( $preload_paths );
 
-				wp_set_script_translations( $this->plugin_name . '-template', 'custom-layouts' );
-				wp_enqueue_script( $this->plugin_name . '-template', plugin_dir_url( dirname( __FILE__ ) ) . 'assets/js/admin/template/custom-layouts' . $file_ext, array( 'wp-element', 'wp-components', 'wp-date', 'wp-compose', 'wp-data', 'wp-editor', 'wp-edit-post', 'wp-api-fetch' ), $this->version, true );
+				// Enqueue template assets using Asset_Loader.
+				Asset_Loader::enqueue( array( 'custom-layouts-template' ) );
+
 				$js_vars['data']['template'] = array(
 					'instances'     => Settings::get_section_data( $post_id, 'template-instances' ),
 					'instanceOrder' => Settings::get_section_data( $post_id, 'template-instance-order' ),
@@ -322,52 +457,17 @@ class Admin {
 
 				$js_vars['editorSettings'] = $this->get_editor_settings();
 
-				// $js_vars = apply_filters( 'custom-layouts/admin/js', $js_vars );
-				wp_localize_script( $this->plugin_name . '-template', 'customLayouts', $js_vars );
+				// TODO - data should be added via the asset loader method.
+				wp_localize_script( 'custom-layouts-template', 'customLayouts', $js_vars );
 			}
 		}
 	}
 
 	/**
-	 * New method to load in theme CSS into our editor settings
-	 * Adapted from - wp-includes/block-editor.php / get_block_editor_theme_styles()
+	 * Get the editor settings.
+	 *
+	 * @return array The editor settings.
 	 */
-	private static function get_editor_styles() {
-
-		global $editor_styles;
-
-		$styles = array();
-
-		// Editor Styles.
-		$styles[] = array(
-			'css' => 'body { font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif }',
-		);
-
-		if ( $editor_styles && current_theme_supports( 'editor-styles' ) ) {
-			foreach ( $editor_styles as $style ) {
-				if ( preg_match( '~^(https?:)?//~', $style ) ) {
-					$response = wp_remote_get( $style );
-					if ( ! is_wp_error( $response ) ) {
-						$styles[] = array(
-							'css' => wp_remote_retrieve_body( $response ),
-						);
-					}
-				} else {
-					$file = get_theme_file_path( $style );
-					if ( is_file( $file ) ) {
-						$styles[] = array(
-							'css'     => file_get_contents( $file ),
-							'baseURL' => get_theme_file_uri( $style ),
-						);
-					}
-				}
-			}
-		}
-		return $styles;
-	}
-
-
-
 	public static function get_editor_settings() {
 
 		$editor_settings = array();
@@ -376,12 +476,14 @@ class Admin {
 		wp_enqueue_style( 'wp-format-library' );
 
 		// Need this to trigger so we load theme block editor assets.
-		// TODO - we have an issue with using this + Woocommerce...
+		// TODO - we have an issue with using this + Woocommerce.
 		$custom_settings = array(
 			'siteUrl' => site_url(),
 			'styles'  => get_block_editor_theme_styles(),
 		);
-		$editor_settings = get_block_editor_settings( $custom_settings, null );
+		// Create a WP_Block_Editor_Context object for get_block_editor_settings.
+		$block_editor_context = new \WP_Block_Editor_Context( array( 'name' => 'core/edit-post' ) );
+		$editor_settings      = get_block_editor_settings( $custom_settings, $block_editor_context );
 
 		// Non GB, lets just support color palette for now.
 		if ( empty( $editor_settings['colors'] ) ) {
@@ -399,27 +501,28 @@ class Admin {
 	 * and languages -- this was true for S&F, but maybe not CL?
 	 *
 	 * @since    1.0.0
+	 * @return   void
 	 */
 	public function remove_metaboxes() {
 
 		global $wp_meta_boxes;
 
-		if ( false === $this->is_custom_layouts_edit_screen() ) {
+		if ( ! Util::screen_is_custom_layouts_edit() ) {
 			return;
 		}
 
-		// todo - get post types from settings
+		// TODO - get post types from settings.
 		$cl_post_types = array( 'cl-layout', 'cl-template' );
 
 		foreach ( $wp_meta_boxes as $meta_box_page => $meta_box ) {
 
-			if ( in_array( $meta_box_page, $cl_post_types ) ) {
+			if ( in_array( $meta_box_page, $cl_post_types, true ) ) {
 
 				foreach ( $wp_meta_boxes[ $meta_box_page ] as $context_name => $priority ) {
 
 					foreach ( $priority as $priority_name => $meta_boxes ) {
 
-						if ( $priority_name != 'core' ) {
+						if ( $priority_name !== 'core' ) {
 							foreach ( $meta_boxes as $meta_box_name => $meta_box ) {
 								remove_meta_box( $meta_box_name, $meta_box_page, $context_name );
 							}
@@ -431,31 +534,14 @@ class Admin {
 	}
 
 	/**
-	 * Open the JS app container (wrap it around all content so 1 app can work across multiple metaboxes)
+	 * Add metaboxes in post edit screens for editing content.
 	 *
 	 * @since    1.0.0
-	 */
-	public function admin_head() {
-
-	}
-	/**
-	 * Close the JS app container in the footer
-	 *
-	 * @since    1.0.0
-	 */
-	public function admin_footer() {
-
-	}
-	/**
-	 * Add metaboxes in post edit screens for editing content
-	 *
-	 * @since    1.0.0
+	 * @return   void
 	 */
 	public function add_metaboxes() {
 
-		global $wp_meta_boxes;
-
-		if ( false === $this->is_custom_layouts_edit_screen() ) {
+		if ( ! Util::screen_is_custom_layouts_edit() ) {
 			return;
 		}
 
@@ -494,21 +580,40 @@ class Admin {
 			'side',
 			'default'
 		);
-
 	}
 
+	/**
+	 * Render the query metabox.
+	 *
+	 * @since    1.0.0
+	 * @return   void
+	 */
 	public function render_query_metabox() {
 
 		global $post;
 		$post_id = $post->ID;
 		echo "<div id='cl-admin-app-query'></div>";
 	}
+
+	/**
+	 * Render the layout metabox.
+	 *
+	 * @since    1.0.0
+	 * @return   void
+	 */
 	public function render_layout_metabox() {
 
 		global $post;
 		$post_id = $post->ID;
-		echo "<div id='cl-admin-app-layout'></div>";
+		echo "<div id='cla-app' class='cla-app'><div id='cl-admin-app-layout'></div></div>";
 	}
+
+	/**
+	 * Render the layout shortcode metabox.
+	 *
+	 * @since    1.0.0
+	 * @return   void
+	 */
 	public function render_layout_shortcode_metabox() {
 
 		global $post;
@@ -520,6 +625,13 @@ class Admin {
 		</div>
 		<?php
 	}
+
+	/**
+	 * Render the template shortcode metabox.
+	 *
+	 * @since    1.0.0
+	 * @return   void
+	 */
 	public function render_template_shortcode_metabox() {
 
 		global $post;
@@ -532,39 +644,25 @@ class Admin {
 		</div>
 		<?php
 	}
+
+	/**
+	 * Render the template metabox.
+	 *
+	 * @since    1.0.0
+	 * @return   void
+	 */
 	public function render_template_metabox() {
 
 		global $post;
 		$post_id = $post->ID;
-		echo "<div id='cla-app-template'></div>";
+		echo "<div id='cla-app' class='cla-app'><div id='cla-app-template'></div></div>";
 	}
 
-
 	/**
-	 * Checks to see if this is a S&F admin post edit screen, stores the result for reuse later
+	 * Checks to see if this is a Custom Layouts admin settings screen.
 	 *
-	 * @return bool|int
-	 */
-	private function is_custom_layouts_edit_screen() {
-
-		if ( -1 === $this->is_custom_layouts_edit_screen ) {
-
-			$current_screen               = get_current_screen();
-			$valid_custom_layouts_screens = array( 'custom-layouts', 'cl-template', 'cl-layout' );
-
-			if ( in_array( $current_screen->id, $valid_custom_layouts_screens ) ) {
-				$this->is_custom_layouts_edit_screen = true;
-			} else {
-				$this->is_custom_layouts_edit_screen = false;
-			}
-		}
-
-		return $this->is_custom_layouts_edit_screen;
-	}
-	/**
-	 * Checks to see if this is a S&F admin settings screen
-	 *
-	 * @return bool|int
+	 * @since    1.0.0
+	 * @return   bool  True if settings screen, false otherwise.
 	 */
 	private function is_custom_layouts_settings() {
 		$current_screen = get_current_screen();
@@ -575,12 +673,28 @@ class Admin {
 		return false;
 	}
 
+	/**
+	 * Handles template deletion.
+	 *
+	 * @since    1.0.0
+	 * @param    int $post_id  The post ID.
+	 * @return   void
+	 */
 	public function delete_post_template( $post_id ) {
 		$post_type = get_post_type( $post_id );
 		if ( $post_type === 'cl-template' ) {
 			$this->should_regenerate_css = true;
 		}
 	}
+
+	/**
+	 * Handles saving a template post.
+	 *
+	 * @since    1.0.0
+	 * @param    int    $post_id  The post ID.
+	 * @param    object $post     The post object.
+	 * @return   void
+	 */
 	public function save_post_template( $post_id, $post ) {
 
 		if ( ! $post ) {
@@ -589,12 +703,12 @@ class Admin {
 
 		$post_id = absint( $post_id );
 
-		// $post_id and $post are required
-		if ( empty( $post_id ) || empty( $post ) ) {
+		// $post_id is required.
+		if ( empty( $post_id ) ) {
 			return;
 		}
 
-		// Dont' save for revisions or autosaves.
+		// Don't save for revisions or autosaves.
 		if ( is_int( wp_is_post_revision( $post ) ) || is_int( wp_is_post_autosave( $post ) ) ) {
 			return;
 		}
@@ -605,8 +719,16 @@ class Admin {
 		}
 
 		$this->save_template( $post_id );
-
 	}
+
+	/**
+	 * Handles saving a layout post.
+	 *
+	 * @since    1.0.0
+	 * @param    int    $post_id  The post ID.
+	 * @param    object $post     The post object.
+	 * @return   void
+	 */
 	public function save_post_layout( $post_id, $post ) {
 		// $post = get_post( $post_id );
 
@@ -616,28 +738,37 @@ class Admin {
 
 		$post_id = absint( $post_id );
 
-		// $post_id and $post are required
-		if ( empty( $post_id ) || empty( $post ) ) {
+		// $post_id is required.
+		if ( empty( $post_id ) ) {
 			return;
 		}
 
-		// Dont' save for revisions or autosaves.
+		// Don't save for revisions or autosaves.
 		if ( is_int( wp_is_post_revision( $post ) ) || is_int( wp_is_post_autosave( $post ) ) ) {
 			return;
 		}
 
 		// Check user has permission to edit.
-		/*
 		if ( ! current_user_can( 'edit_post', $post_id ) ) {
 			return;
-		}*/
+		}
 
 		$this->save_layout( $post_id );
-
 	}
 
-
+	/**
+	 * Saves template data to post meta.
+	 *
+	 * @since    1.0.0
+	 * @param    int $post_id  The post ID.
+	 * @return   void
+	 */
 	public function save_template( $post_id ) {
+
+		// Verify nonce for CSRF protection.
+		if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'update-post_' . (int) $post_id ) ) {
+			return;
+		}
 
 		$update_meta = true;
 
@@ -647,9 +778,17 @@ class Admin {
 
 		if ( $update_meta ) {
 
-			$instances_data = json_decode( stripslashes_deep( $_POST['custom-layouts-instances'] ), true );
-			$instance_order = json_decode( stripslashes_deep( $_POST['custom-layouts-instance-order'] ), true );
-			$template_data  = json_decode( stripslashes_deep( $_POST['custom-layouts-template-data'] ), true );
+			// Validate input is string before processing.
+			if ( ! is_string( $_POST['custom-layouts-instances'] ) || ! is_string( $_POST['custom-layouts-instance-order'] ) || ! is_string( $_POST['custom-layouts-template-data'] ) ) {
+				return;
+			}
+
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON data sanitized via Util::deep_clean() after decode.
+			$instances_data = json_decode( wp_unslash( $_POST['custom-layouts-instances'] ), true );
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON data sanitized via Util::deep_clean() after decode.
+			$instance_order = json_decode( wp_unslash( $_POST['custom-layouts-instance-order'] ), true );
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON data sanitized via Util::deep_clean() after decode.
+			$template_data = json_decode( wp_unslash( $_POST['custom-layouts-template-data'] ), true );
 
 			$instances_clean      = Util::deep_clean( $instances_data );
 			$instance_order_clean = Util::deep_clean( $instance_order );
@@ -660,8 +799,9 @@ class Admin {
 			update_post_meta( $post_id, 'custom-layouts-template-data', $template_data_clean );
 			update_post_meta( $post_id, 'custom-layouts-version', CUSTOM_LAYOUTS_VERSION );
 
-			if ( isset( $_POST['custom-layouts-app-data'] ) ) {
-				$app_data       = json_decode( stripslashes_deep( $_POST['custom-layouts-app-data'] ), true );
+			if ( isset( $_POST['custom-layouts-app-data'] ) && is_string( $_POST['custom-layouts-app-data'] ) ) {
+				// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON data sanitized via Util::deep_clean() after decode.
+				$app_data       = json_decode( wp_unslash( $_POST['custom-layouts-app-data'] ), true );
 				$app_data_clean = Util::deep_clean( $app_data );
 				update_post_meta( $post_id, 'custom-layouts-app-data', $app_data_clean );
 			}
@@ -670,19 +810,37 @@ class Admin {
 		}
 	}
 
+	/**
+	 * Saves layout data to post meta.
+	 *
+	 * @since    1.0.0
+	 * @param    int $post_id  The post ID.
+	 * @return   void
+	 */
 	public function save_layout( $post_id ) {
+
+		// Verify nonce for CSRF protection.
+		if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'update-post_' . (int) $post_id ) ) {
+			return;
+		}
 
 		if ( ! isset( $_POST['custom-layouts-layout-attributes'] ) ) {
 			return;
 		}
 
-		$layout_attributes       = json_decode( stripslashes_deep( $_POST['custom-layouts-layout-attributes'] ), true );
+		// Validate input is string before processing.
+		if ( ! is_string( $_POST['custom-layouts-layout-attributes'] ) ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON data sanitized via Util::deep_clean() after decode.
+		$layout_attributes       = json_decode( wp_unslash( $_POST['custom-layouts-layout-attributes'] ), true );
 		$layout_attributes_clean = Util::deep_clean( $layout_attributes );
 
-		// now we want to map the data back to php format
+		// Now we want to map the data back to php format.
 		$layout_attributes_clean = Gutenberg::map_attributes( 'js', $layout_attributes_clean );
 
-		// and then split into query + layout according to the settings
+		// And then split into query + layout according to the settings.
 		$layout_keys = array_keys( Settings::get_settings_defaults( array( 'layout' ) ) );
 		$query_keys  = array_keys( Settings::get_settings_defaults( array( 'query' ) ) );
 
@@ -707,45 +865,50 @@ class Admin {
 	}
 
 	/**
-	 * Get the last tab from a post ID (stored in post meta)
-	 *
-	 * @param int $post_id   The post ID.
+	 * Get the last tab from a post ID (stored in post meta).
 	 *
 	 * @since    1.0.0
+	 * @param    int $post_id   The post ID.
+	 * @return   string         The last tab name.
 	 */
 	public function get_post_last_tab( $post_id ) {
 		return get_post_meta( $post_id, 'custom-layouts-last-tab', true );
 	}
 
 	/**
-	 * Get the last tab from a post ID (stored in post meta)
-	 *
-	 * @param int    $post_id  The post ID.
-	 * @param string $tab      The tab name
+	 * Update the last tab for a post ID (stored in post meta).
 	 *
 	 * @since    1.0.0
+	 * @param    int    $post_id  The post ID.
+	 * @param    string $tab      The tab name.
+	 * @return   void
 	 */
 	public function update_post_last_tab( $post_id, $tab ) {
 		update_post_meta( $post_id, 'custom-layouts-last-tab', $tab );
 	}
 
 	/**
-	 * Unset the last tab from a post ID (stored in post meta)
-	 *
-	 * @param int    $post_id  The post ID.
-	 * @param string $tab      The tab name
+	 * Unset the last tab from a post ID (stored in post meta).
 	 *
 	 * @since    1.0.0
+	 * @param    int $post_id  The post ID.
+	 * @return   void
 	 */
 	public function remove_post_last_tab( $post_id ) {
 		delete_post_meta( $post_id, 'custom-layouts-last-tab' );
 	}
 
-
+	/**
+	 * Preloads API requests for the block editor.
+	 *
+	 * Copied from core - wp-includes/block-editor.php.
+	 *
+	 * @since    1.0.0
+	 * @param    array $preload_paths  Array of API paths to preload.
+	 * @return   void
+	 */
 	private function preload_api_requests( $preload_paths ) {
-		/*
-		 Copied from core - wp-includes/block-editor.php */
-		// Keep for a little while until most users are on WP 5.8, then use `block_editor_rest_api_preload( $paths, null )`
+		// Keep for a little while until most users are on WP 5.8, then use `block_editor_rest_api_preload( $paths, null )`.
 
 		// Restore the global $post as it was before API preloading.
 		// Preload common data.
@@ -764,7 +927,9 @@ class Admin {
 			'rest_preload_api_request',
 			array()
 		);
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Intentional restore after rest_preload_api_request.
 		$post               = $backup_global_post;
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Intentional restore after rest_preload_api_request.
 		$post_id            = $backup_post_id;
 		wp_add_inline_script(
 			'wp-api-fetch',

@@ -72,9 +72,10 @@ class Settings {
 	);
 
 	/**
-	 * Register built in settings
+	 * Register built in settings.
 	 *
 	 * @since    1.0.0
+	 * @return   void
 	 */
 	public static function register() {
 
@@ -97,11 +98,11 @@ class Settings {
 	}
 
 	/**
-	 * Registers the built in settings for a settings area
-	 *
-	 * @param string $section  The section name to register.
+	 * Registers the built in settings for a settings area.
 	 *
 	 * @since    1.0.0
+	 * @param    string $section  The section name to register.
+	 * @return   void
 	 */
 	private static function register_settings_section( $section ) {
 
@@ -109,26 +110,24 @@ class Settings {
 			return;
 		}
 
-		// get the initial data.
+		// Get the initial data.
+		$settings_data = array();
 		if ( 'layout' === $section ) {
 			$settings_data = Grid_Settings::get_data();
 		} elseif ( 'query' === $section ) {
 			$settings_data = Query_Settings::get_data();
-		}/*
-		elseif ( 'global' === $section ) {
-			$settings_data = Global_Settings::get_data();
-		} */
+		}
 
 		self::process_settings_data( $settings_data, $section );
 	}
 
 	/**
-	 * Takes the raw settings data and registers it
-	 *
-	 * @param array  $settings_data    The data to be stored as settings.
-	 * @param string $setting_section  The section name to register the settings to.
+	 * Takes the raw settings data and registers it.
 	 *
 	 * @since    1.0.0
+	 * @param    array  $settings_data    The data to be stored as settings.
+	 * @param    string $setting_section  The section name to register the settings to.
+	 * @return   void
 	 */
 	private static function process_settings_data( $settings_data, $setting_section ) {
 
@@ -140,12 +139,13 @@ class Settings {
 			self::register_setting( $args );
 		}
 	}
+
 	/**
-	 * Registers an individual setting
-	 *
-	 * @param array $args  The config for a setting.
+	 * Registers an individual setting.
 	 *
 	 * @since    1.0.0
+	 * @param    array $args  The config for a setting.
+	 * @return   bool         False on error, void on success.
 	 */
 	public static function register_setting( $args ) {
 
@@ -168,12 +168,12 @@ class Settings {
 		$name    = $args['setting']['name'];
 
 		if ( ! isset( self::$settings[ $section ] ) ) {
-			_doing_it_wrong( __METHOD__, sprintf( esc_html__( 'The section "%1$s" does not exist', 'custom-layouts' ), $section ), '1.0.0' );
+			_doing_it_wrong( __METHOD__, sprintf( esc_html__( 'The section "%1$s" does not exist', 'custom-layouts' ), esc_html( $section ) ), '1.0.0' );
 			return false;
 		}
 
 		if ( isset( self::$settings[ $section ][ $name ] ) ) {
-			_doing_it_wrong( __METHOD__, sprintf( esc_html__( 'A setting with the name "%1$s" already exists', 'custom-layouts' ), $name ), '1.0.0' );
+			_doing_it_wrong( __METHOD__, sprintf( esc_html__( 'A setting with the name "%1$s" already exists', 'custom-layouts' ), esc_html( $name ) ), '1.0.0' );
 			return false;
 		}
 
@@ -185,7 +185,7 @@ class Settings {
 		if ( isset( $args['after'] ) ) {
 			// If "after" is set, position it directly after the named setting.
 			$after_name = $args['after'];
-			// lookup the setting by its property - "name" - to get its position.
+			// Lookup the setting by its property - "name" - to get its position.
 			$found_position = array_search( $after_name, self::$settings_order[ $section ], true );
 
 			if ( false !== $found_position ) {
@@ -197,26 +197,27 @@ class Settings {
 				}
 			}
 		} elseif ( isset( $args['before'] ) ) {
-			// TODO
+			// TODO.
 		} else {
 			array_push( self::$settings_order[ $section ], $name );
 		}
+		return true;
 	}
 
 	/**
-	 * Gets a setting by name and section
-	 *
-	 * @param string $name     The setting name.
-	 * @param string $section  The settings section.
+	 * Gets a setting by name and section.
 	 *
 	 * @since    1.0.0
+	 * @param    string $name     The setting name.
+	 * @param    string $section  The settings section.
+	 * @return   object|false     The setting object or false if not found.
 	 */
 	public static function get_setting( $name, $section ) {
 		// Find the option by name.
 
 		if ( ! isset( self::$settings[ $section ] ) ) {
 			// Translators: TODO.
-			_doing_it_wrong( __METHOD__, sprintf( esc_html__( 'The section "%1$s" does not exist', 'custom-layouts' ), $section ), '1.0.0' );
+			_doing_it_wrong( __METHOD__, sprintf( esc_html__( 'The section "%1$s" does not exist', 'custom-layouts' ), esc_html( $section ) ), '1.0.0' );
 			return false;
 		}
 
@@ -228,24 +229,24 @@ class Settings {
 	}
 
 	/**
-	 * Updates a setting by name and section
-	 *
-	 * @param string $name     The setting name.
-	 * @param string $section  The settings section.
-	 * @param array  $args     The new setting values.
+	 * Updates a setting by name and section.
 	 *
 	 * @since    1.0.0
+	 * @param    string $name     The setting name.
+	 * @param    string $section  The settings section.
+	 * @param    array  $args     The new setting values.
+	 * @return   bool             True on success, false on error.
 	 */
 	public static function update_setting( $name, $section, $args ) {
 
 		if ( ! isset( self::$settings[ $section ] ) ) {
 			// Translators: TODO.
-			_doing_it_wrong( __METHOD__, sprintf( esc_html__( 'The section "%1$s" does not exist', 'custom-layouts' ), $section ), '1.0.0' );
+			_doing_it_wrong( __METHOD__, sprintf( esc_html__( 'The section "%1$s" does not exist', 'custom-layouts' ), esc_html( $section ) ), '1.0.0' );
 			return false;
 		}
 
 		if ( ! isset( self::$settings[ $section ][ $name ] ) ) {
-			_doing_it_wrong( __METHOD__, sprintf( esc_html__( 'A setting with the name "%1$s" does not exist', 'custom-layouts' ), $name ), '1.0.0' );
+			_doing_it_wrong( __METHOD__, sprintf( esc_html__( 'A setting with the name "%1$s" does not exist', 'custom-layouts' ), esc_html( $name ) ), '1.0.0' );
 			return false;
 		}
 
@@ -257,12 +258,10 @@ class Settings {
 	/**
 	 * Gets a group of settings by section.
 	 *
-	 * @param string $section       The settings section.
-	 * @param bool   $return_array  Return as numeric array.
-	 *
-	 * @return mixed  An array of settings
-	 *
 	 * @since    1.0.0
+	 * @param    string $section       The settings section.
+	 * @param    bool   $return_array  Return as numeric array.
+	 * @return   array                 An array of settings.
 	 */
 	public static function get_settings_by_section( $section, $return_array = false ) {
 
@@ -281,12 +280,19 @@ class Settings {
 		}
 	}
 
+	/**
+	 * Gets the default values for settings sections.
+	 *
+	 * @since    1.0.0
+	 * @param    array $sections  Array of section names.
+	 * @return   array            Array of default values.
+	 */
 	public static function get_settings_defaults( $sections ) {
 
 		// TODO - store the defaults in a "flatter" array for re-using
 		// or don't... if someone uses a filter to modify a default,
 		// copying the default will make it out of sync, so lets always
-		// call dynamically using `get_default()`
+		// call dynamically using `get_default()`.
 		$defaults = array();
 		foreach ( $sections as $section ) {
 			$settings_section = self::get_settings_by_section( $section );
@@ -299,15 +305,13 @@ class Settings {
 	}
 
 	/**
-	 * Gets the data post data for a specific setting
-	 *
-	 * @param string $setting_name  The name of the setting.
-	 * @param string $section       The settings section.
-	 * @param int    $post_id       Return as numeric array.
-	 *
-	 * @return mixed  An array of settings
+	 * Gets the data post data for a specific setting.
 	 *
 	 * @since    1.0.0
+	 * @param    string $setting_name  The name of the setting.
+	 * @param    string $section       The settings section.
+	 * @param    int    $post_id       The post ID.
+	 * @return   mixed                 The setting data or false if not found.
 	 */
 	public static function get_setting_data( $setting_name, $section, $post_id ) {
 
@@ -320,12 +324,12 @@ class Settings {
 	}
 
 	/**
-	 * Generates data for a settings section
-	 *
-	 * @param string $section  The settings section.
-	 * @param int    $post_id  Return as numeric array.
+	 * Generates data for a settings section.
 	 *
 	 * @since    1.0.0
+	 * @param    int    $post_id  The post ID.
+	 * @param    string $section  The settings section.
+	 * @return   array            The section data.
 	 */
 	public static function get_section_data( $post_id, $section ) {
 
@@ -333,7 +337,7 @@ class Settings {
 			self::$data[ $post_id ] = array();
 		}
 
-		// needs to be after initial set..
+		// Needs to be after initial set.
 		do_action( 'custom-layouts/settings/get', $post_id, $section );
 
 		if ( ! isset( self::$data[ $post_id ][ $section ] ) ) {
@@ -345,18 +349,18 @@ class Settings {
 			$value = self::$data[ $post_id ][ $section ];
 		}
 
-		// $value = apply_filters( 'custom-layouts/settings/get', $post_id, $section, $value );
-
 		return $value;
 	}
 
 	/**
-	 * Gets the local settings data for a post_id
-	 * current only spports templates
+	 * Gets the local settings data for a post_id.
 	 *
-	 * @param int $post_id  Return as numeric array.
+	 * Currently only supports templates.
 	 *
 	 * @since    1.0.0
+	 * @param    int   $post_id   The post ID.
+	 * @param    array $sections  Optional sections to load.
+	 * @return   array            The settings data.
 	 */
 	public static function get_settings_data( $post_id, $sections = array() ) {
 
@@ -372,28 +376,35 @@ class Settings {
 	}
 
 	/**
-	 * Updates the settings for a post (template/layout)
-	 *
-	 * @param string $section  The settings section.
-	 * @param int    $post_id  Return as numeric array.
+	 * Updates the settings for a post (template/layout).
 	 *
 	 * @since    1.3.0
+	 * @param    int   $post_id   The post ID.
+	 * @param    array $settings  The settings array.
+	 * @return   void
 	 */
 	public static function update_settings_data( $post_id, $settings ) {
 
-		// update local data
+		// Update local data.
 		self::$data[ $post_id ] = $settings;
 
-		// copy that to the DB
+		// Copy that to the DB.
 		foreach ( $settings as $section_name => $section ) {
 			$section_clean = Util::deep_clean( $section );
 			update_post_meta( $post_id, 'custom-layouts-' . $section_name, $section_clean );
 		}
 
-		// add current version
+		// Add current version.
 		update_post_meta( $post_id, 'custom-layouts-version', CUSTOM_LAYOUTS_VERSION );
 	}
 
+	/**
+	 * Gets the settings version for a post.
+	 *
+	 * @since    1.0.0
+	 * @param    int $post_id  The post ID.
+	 * @return   string        The version number.
+	 */
 	public static function get_setting_version( $post_id ) {
 		$version = get_post_meta( $post_id, 'custom-layouts-version', true );
 		if ( $version === '' ) {
@@ -401,21 +412,38 @@ class Settings {
 		}
 		return $version;
 	}
+
+	/**
+	 * Checks if a post is a template.
+	 *
+	 * @since    1.0.0
+	 * @param    int $post_id  The post ID.
+	 * @return   bool          True if template, false otherwise.
+	 */
 	public static function is_template( $post_id ) {
 		$post_type = get_post_type( $post_id );
 		return $post_type === 'cl-template';
 	}
+
+	/**
+	 * Checks if a post is a layout.
+	 *
+	 * @since    1.0.0
+	 * @param    int $post_id  The post ID.
+	 * @return   bool          True if layout, false otherwise.
+	 */
 	public static function is_layout( $post_id ) {
 		$post_type = get_post_type( $post_id );
 		return $post_type === 'cl-layout';
 	}
+
 	/**
-	 * Gets the setting values from and sets them to vars
-	 *
-	 * @param int    $post_id  Return as numeric array.
-	 * @param string $section  The settings section.
+	 * Gets the setting values from and sets them to vars.
 	 *
 	 * @since    1.0.0
+	 * @param    int    $post_id  The post ID.
+	 * @param    string $section  The settings section.
+	 * @return   void
 	 */
 	private static function set_settings_data( $post_id, $section ) {
 
@@ -430,6 +458,12 @@ class Settings {
 		do_action( 'custom-layouts/settings/set/after', $post_id, $section );
 	}
 
+	/**
+	 * Gets the data for all layouts.
+	 *
+	 * @since    1.0.0
+	 * @return   array  Array of layout data.
+	 */
 	public static function get_layouts_data() {
 
 		$layout_posts = self::get_layouts();
@@ -447,7 +481,14 @@ class Settings {
 		}
 		return $layouts;
 	}
-	/* get a list of all layout value/label pairs for select fields  */
+
+	/**
+	 * Gets a list of all layout value/label pairs for select fields.
+	 *
+	 * @since    1.0.0
+	 * @param    string $language  Optional language parameter.
+	 * @return   array             Array of layout options.
+	 */
 	public static function get_layouts_options( $language = '' ) {
 		do_action( 'custom-layouts/settings/get_layouts_options', $language );
 		$layout_posts = self::get_layouts();
@@ -463,7 +504,14 @@ class Settings {
 		}
 		return $layouts;
 	}
-	/* get a list of all layout value/label pairs for select fields  */
+
+	/**
+	 * Gets a list of all template value/label pairs for select fields.
+	 *
+	 * @since    1.0.0
+	 * @param    string $language  Optional language parameter.
+	 * @return   array             Array of template options.
+	 */
 	public static function get_templates_options( $language = '' ) {
 		do_action( 'custom-layouts/settings/get_templates_options', $language );
 		$template_posts = self::get_templates();
@@ -481,8 +529,13 @@ class Settings {
 		return $templates;
 	}
 
+	/**
+	 * Gets a list of all layouts.
+	 *
+	 * @since    1.0.0
+	 * @return   array  Array of layout posts.
+	 */
 	// TODO - this stuff needs to be moved into its own class, or the wp-data class?
-	/* get a list of all layout value/label pairs for select fields  */
 	public static function get_layouts() {
 		$args         = array(
 			'post_type'      => 'cl-layout',
@@ -493,10 +546,16 @@ class Settings {
 		$layout_posts = get_posts( $args );
 		return $layout_posts;
 	}
-	/* get a list of all layout value/label pairs for select fields  */
+
+	/**
+	 * Gets a list of all templates.
+	 *
+	 * @since    1.0.0
+	 * @return   array  Array of template posts.
+	 */
 	public static function get_templates() {
 
-		// TODO - keep a reference to results, so we don't run the query repeatedly
+		// TODO - keep a reference to results, so we don't run the query repeatedly.
 		$args = array(
 			'post_type'      => 'cl-template',
 			'post_status'    => 'publish',
@@ -507,7 +566,14 @@ class Settings {
 		$template_posts = get_posts( $args );
 		return $template_posts;
 	}
-	/* TODO - this stuff needs to be moved out of settings, some sort of wp-data wrapper */
+
+	/**
+	 * Gets all public taxonomies.
+	 *
+	 * @since    1.0.0
+	 * @return   array  Array of taxonomy data.
+	 */
+	// TODO - this stuff needs to be moved out of settings, some sort of wp-data wrapper.
 	public static function get_taxonomies() {
 
 		$args = array(
@@ -519,7 +585,7 @@ class Settings {
 		$wp_taxonomies = get_taxonomies( $args, $output, $operator );
 
 		$taxonomies = array();
-		// only use the data we want
+		// Only use the data we want.
 		foreach ( $wp_taxonomies as $taxonomy ) {
 
 			$taxonomy_data = array(
@@ -533,7 +599,12 @@ class Settings {
 		return $taxonomies;
 	}
 
-
+	/**
+	 * Gets taxonomies that have archives.
+	 *
+	 * @since    1.0.0
+	 * @return   array  Array of taxonomy data.
+	 */
 	public static function get_taxonomies_w_archive() {
 
 		$args = array(
@@ -561,7 +632,12 @@ class Settings {
 		return $taxonomies;
 	}
 
-
+	/**
+	 * Gets all public post types.
+	 *
+	 * @since    1.0.0
+	 * @return   array  Array of post type data.
+	 */
 	public static function get_public_post_types() {
 
 		$args = array(
@@ -584,9 +660,16 @@ class Settings {
 
 		return $post_types;
 	}
+
+	/**
+	 * Gets all authors.
+	 *
+	 * @since    1.0.0
+	 * @return   array  Array of author data.
+	 */
 	public static function get_authors() {
 		$args         = array(
-			'role__not_in' => 'Subscriber',
+			'role__not_in' => array( 'Subscriber' ),
 			'orderby'      => 'display_name',
 			'order'        => 'ASC',
 			'fields'       => 'ids',
@@ -609,6 +692,12 @@ class Settings {
 		return $authors;
 	}
 
+	/**
+	 * Gets all public post type objects.
+	 *
+	 * @since    1.0.0
+	 * @return   array  Array of post type objects.
+	 */
 	public static function get_public_post_type_objects() {
 
 		$args = array(
@@ -629,6 +718,12 @@ class Settings {
 		return $post_types;
 	}
 
+	/**
+	 * Gets all post types.
+	 *
+	 * @since    1.0.0
+	 * @return   array  Array of post type data.
+	 */
 	public static function get_post_types() {
 
 		$args = array();
@@ -640,7 +735,7 @@ class Settings {
 
 		foreach ( $post_types as $post_type ) {
 
-			if ( ! in_array( $post_type->name, $exclude_post_types ) ) {
+			if ( ! in_array( $post_type->name, $exclude_post_types, true ) ) {
 				$item          = array();
 				$item['value'] = $post_type->name;
 				$item['label'] = $post_type->labels->name;
@@ -649,6 +744,13 @@ class Settings {
 		}
 		return $json_post_types;
 	}
+
+	/**
+	 * Gets post types with their associated taxonomies.
+	 *
+	 * @since    1.0.0
+	 * @return   array  Array of post types with taxonomies.
+	 */
 	public static function get_post_types_taxonomies() {
 		$post_types = self::get_public_post_type_objects();
 
@@ -667,6 +769,12 @@ class Settings {
 		return $post_types_taxonomies;
 	}
 
+	/**
+	 * Gets all post statuses.
+	 *
+	 * @since    1.0.0
+	 * @return   array  Array of post status data.
+	 */
 	public static function get_post_stati() {
 
 		$post_stati_objects = get_post_stati( array(), 'objects' );
@@ -676,8 +784,8 @@ class Settings {
 
 		foreach ( $post_stati_objects as $post_status_key => $post_status ) {
 
-			// don't add any from the ignore list
-			if ( ! in_array( $post_status_key, $post_stati_ignore ) ) {
+			// Don't add any from the ignore list.
+			if ( ! in_array( $post_status_key, $post_stati_ignore, true ) ) {
 
 				$post_status = array(
 					'value' => $post_status_key,
@@ -691,7 +799,14 @@ class Settings {
 		return $post_stati;
 	}
 
-	/* TODO - used in frontend */
+	/**
+	 * Gets the layout data for a post.
+	 *
+	 * @since    1.0.0
+	 * @param    int $post_id  The post ID.
+	 * @return   array|false   The layout data or false if not found.
+	 */
+	// TODO - used in frontend.
 	public static function get_layout_data( $post_id ) {
 
 		$layout = self::get_section_data( $post_id, 'layout' );
@@ -704,6 +819,14 @@ class Settings {
 
 		return false;
 	}
+
+	/**
+	 * Gets the template data for a post.
+	 *
+	 * @since    1.0.0
+	 * @param    int $post_id  The post ID (0 for default template).
+	 * @return   array         The template data.
+	 */
 	public static function get_template_data( $post_id ) {
 
 		if ( 0 === $post_id ) {
@@ -719,6 +842,14 @@ class Settings {
 		);
 		return $settings;
 	}
+
+	/**
+	 * Gets a plugin option.
+	 *
+	 * @since    1.0.0
+	 * @param    string $option_name  The option name.
+	 * @return   mixed                The option value or false if not found.
+	 */
 	public static function get_option( $option_name ) {
 		if ( $option_name === 'breakpoints' ) {
 			return get_option(
@@ -734,13 +865,24 @@ class Settings {
 		return false;
 	}
 
+	/**
+	 * Gets all registered image sizes.
+	 *
+	 * @since    1.0.0
+	 * @return   array  Array of image size names.
+	 */
 	public static function get_all_image_sizes() {
 		$default_image_sizes = get_intermediate_image_sizes();
 		// array_push( $default_image_sizes, 'full' );
 		return $default_image_sizes;
-
 	}
 
+	/**
+	 * Gets the default template configuration.
+	 *
+	 * @since    1.0.0
+	 * @return   array  The default template data.
+	 */
 	public static function get_default_template() {
 		return array(
 			'instances'      => array(
@@ -826,7 +968,7 @@ class Settings {
 							'br' => '0px',
 							'bl' => '0px',
 						),
-					  // 'widthMode' => 'wide',
+						// 'widthMode' => 'wide',
 					),
 					'elementId' => 'section',
 					'id'        => 'eluid-1002',
@@ -990,6 +1132,13 @@ class Settings {
 			),
 		);
 	}
+
+	/**
+	 * Gets the default layout configuration.
+	 *
+	 * @since    1.0.0
+	 * @return   array  The default layout data.
+	 */
 	public static function get_default_layout() {
 		return array(
 			'attributes' => array(

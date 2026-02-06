@@ -1,4 +1,11 @@
 <?php
+/**
+ * Frontend functionality class
+ *
+ * @package    Custom_Layouts
+ * @since      1.0.0
+ */
+
 namespace Custom_Layouts;
 
 use Custom_Layouts\Util;
@@ -19,6 +26,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * The public-facing functionality of the plugin.
+ *
+ * Defines the plugin name, version, and hooks for managing frontend functionality.
+ *
+ * @since      1.0.0
+ * @package    Custom_Layouts
+ * @subpackage Custom_Layouts/includes
+ */
 class Frontend {
 
 	/**
@@ -50,8 +66,6 @@ class Frontend {
 
 		$this->plugin_name = $plugin_name;
 		$this->version     = $version;
-		// \Custom_Layouts\Query\Selector::init();
-		// \Custom_Layouts\Query::init();
 		\Custom_Layouts\Grid::init();
 	}
 
@@ -61,20 +75,7 @@ class Frontend {
 	 * @since    1.0.0
 	 */
 	public function enqueue_styles() {
-
-		$file_ext = Util::get_file_ext( '.css' );
-		// $load_js_css = get_option( 'custom_layouts_load_js_css' );
-
-		// if( false === $load_js_css ) {
-		// $load_js_css = 1;
-		// }
-
-		// if( 1 === $load_js_css ) {
-			// wp_enqueue_style( $this->plugin_name, plugin_dir_url( dirname(__FILE__) ) . 'assets/css/frontend/custom-layouts' . $file_ext, array(), $this->version, 'all' );
-			// wp_enqueue_style( $this->plugin_name . '-styles', CSS_Loader::get_css_url(), array(), $this->version, 'all' );
-
-			wp_enqueue_style( $this->plugin_name . '-styles', CSS_Loader::get_css_url(), array(), CSS_Loader::get_version( $this->version ), 'all' );
-		// }
+		wp_enqueue_style( $this->plugin_name . '-styles', CSS_Loader::get_css_url(), array(), (string) CSS_Loader::get_version( (int) $this->version ), 'all' );
 	}
 
 	/**
@@ -84,29 +85,10 @@ class Frontend {
 	 */
 	public function register_scripts() {
 
-		$file_ext = Util::get_file_ext( '.js' );
-
-		wp_register_script( $this->plugin_name, plugins_url( 'assets/js/frontend/custom-layouts' . $file_ext, dirname( __FILE__ ) ), array( 'imagesloaded', 'masonry' ), $this->version, true );
-		// wp_register_script( $this->plugin_name, plugins_url( 'assets/js/frontend/custom-layouts' . $file_ext, dirname(__FILE__) ), array('jquery'), $this->version, true );
+		wp_register_script( $this->plugin_name, plugins_url( 'assets/frontend/app.js', __DIR__ ), array( 'imagesloaded', 'masonry' ), $this->version, true );
 		wp_enqueue_script( 'imagesloaded' );
 		wp_enqueue_script( 'masonry' );
 		wp_enqueue_script( $this->plugin_name );
-
-		/*
-		 * figure out if we need to enqueue the scripts now or later
-		 */
-
-		// if the user has set lazy load JS, then we won't want to load here
-		/*
-		$lazy_load_js = Util::get_option( 'custom_layouts_lazy_load_js' );
-
-		// checks whether the user has enabled  CSS & JS (they can disabled in settings)
-		$load_js_css = Util::get_option( 'custom_layouts_load_js_css' );
-
-		// if lazy load js is off, and load css & js files is on
-		if( ( 1 != $lazy_load_js ) && ( 1 == $load_js_css ) ) {
-			//$this->enqueue_scripts();
-		}*/
 	}
 
 	/**
@@ -121,9 +103,8 @@ class Frontend {
 
 		wp_enqueue_script( $this->plugin_name );
 
-		if ( 1 == $load_jquery_i18n ) {
+		if ( 1 === $load_jquery_i18n ) {
 			wp_enqueue_script( $this->plugin_name . '-plugin-jquery-i18n' );
 		}
 	}
 }
-

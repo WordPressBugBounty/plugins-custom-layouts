@@ -1,10 +1,31 @@
 <?php
+/**
+ * Upgrade script for version 1.4.8
+ *
+ * @package    Custom_Layouts
+ * @since      1.4.8
+ */
+
 namespace Custom_Layouts\Upgrade\v1_4_8;
 
 use Custom_Layouts\Settings;
 
-add_action( 'custom-layouts/settings/get', 'Custom_Layouts\\Upgrade\\v1_4_8\\upgrade', 10, 2 );
-function upgrade( $post_id, $section ) {
+/**
+ * Parse the settings data, and upgrade where necessary according to version numbers.
+ *
+ * @since    1.4.8
+ */
+
+add_action( 'custom-layouts/settings/get', 'Custom_Layouts\\Upgrade\\v1_4_8\\upgrade', 10, 1 );
+
+/**
+ * Upgrade settings data from versions prior to 1.4.8.
+ *
+ * @since 1.4.8
+ * @param int $post_id The post ID.
+ * @return void
+ */
+function upgrade( $post_id ) {
 	$settings_version = Settings::get_setting_version( $post_id );
 	if ( ! version_compare( $settings_version, '1.4.8-beta', '<' ) ) {
 		return;
@@ -14,9 +35,16 @@ function upgrade( $post_id, $section ) {
 		$layout_settings = Settings::get_settings_data( $post_id, array( 'layout' ) );
 		upgrade_layout( $layout_settings, $post_id );
 	}
-
 }
 
+/**
+ * Upgrade layout settings to version 1.4.8 format.
+ *
+ * @since 1.4.8
+ * @param array $layout_settings The layout settings data.
+ * @param int   $layout_id The layout post ID.
+ * @return void
+ */
 function upgrade_layout( $layout_settings, $layout_id ) {
 	if ( ! isset( $layout_settings['layout'] ) ) {
 		return;

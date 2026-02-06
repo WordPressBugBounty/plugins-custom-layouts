@@ -1,18 +1,32 @@
 <?php
+/**
+ * Upgrade script for version 1.4.2
+ *
+ * @package    Custom_Layouts
+ * @since      1.4.2
+ */
+
 namespace Custom_Layouts\Upgrade\v1_4_2;
 
 use Custom_Layouts\Core\CSS_Loader;
 use Custom_Layouts\Settings;
 
 /**
- * Parse the settings data, and upgrade where necessary accoring to version nubers
+ * Parse the settings data, and upgrade where necessary according to version numbers.
  *
- * @since    1.4.0
+ * @since    1.4.2
  */
 
-add_action( 'custom-layouts/settings/get', 'Custom_Layouts\\Upgrade\\v1_4_2\\upgrade', 10, 2 );
+add_action( 'custom-layouts/settings/get', 'Custom_Layouts\\Upgrade\\v1_4_2\\upgrade', 10, 1 );
 
-function upgrade( $post_id, $section ) {
+/**
+ * Upgrade settings data from versions prior to 1.4.2.
+ *
+ * @since 1.4.2
+ * @param int $post_id The post ID.
+ * @return void
+ */
+function upgrade( $post_id ) {
 
 	$settings_version = Settings::get_setting_version( $post_id );
 	if ( ! version_compare( $settings_version, '1.4.2-beta', '<' ) ) {
@@ -24,6 +38,14 @@ function upgrade( $post_id, $section ) {
 	}
 }
 
+/**
+ * Upgrade template settings to version 1.4.2 format.
+ *
+ * @since 1.4.2
+ * @param array $template_settings The template settings data.
+ * @param int   $template_id The template post ID.
+ * @return void
+ */
 function upgrade_template( $template_settings, $template_id ) {
 
 	$template_instances = array();
@@ -47,7 +69,7 @@ function upgrade_template( $template_settings, $template_id ) {
 			// In 1.4.1, we stopped saving colour information if the colour was transparent
 			// this adds a default value in for those scenarios, so they remain transparent
 			// when loading the template editor again (when there is no value, the template
-			// editor will load its defaults instead)
+			// editor will load its defaults instead).
 			if ( ! isset( $instance_attributes['textColor'] ) ) {
 				$instance_attributes['textColor'] = '';
 			}
@@ -59,5 +81,5 @@ function upgrade_template( $template_settings, $template_id ) {
 	}
 
 	Settings::update_settings_data( $template_id, $template_settings );
-	CSS_Loader::save_css( array( $template_id ) ); // regenerate the CSS
+	CSS_Loader::save_css( array( $template_id ) ); // Regenerate the CSS.
 }

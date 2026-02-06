@@ -1,12 +1,32 @@
 <?php
+/**
+ * Upgrade script for version 1.4.3
+ *
+ * @package    Custom_Layouts
+ * @since      1.4.3
+ */
+
 namespace Custom_Layouts\Upgrade\v1_4_3;
 
 use Custom_Layouts\Core\CSS_Loader;
 use Custom_Layouts\Settings;
 
-add_action( 'custom-layouts/settings/get', 'Custom_Layouts\\Upgrade\\v1_4_3\\upgrade', 10, 2 );
+/**
+ * Parse the settings data, and upgrade where necessary according to version numbers.
+ *
+ * @since    1.4.3
+ */
 
-function upgrade( $post_id, $section ) {
+add_action( 'custom-layouts/settings/get', 'Custom_Layouts\\Upgrade\\v1_4_3\\upgrade', 10, 1 );
+
+/**
+ * Upgrade settings data from versions prior to 1.4.3.
+ *
+ * @since 1.4.3
+ * @param int $post_id The post ID.
+ * @return void
+ */
+function upgrade( $post_id ) {
 	$settings_version = Settings::get_setting_version( $post_id );
 	if ( ! version_compare( $settings_version, '1.4.3-beta', '<' ) ) {
 		return;
@@ -17,6 +37,14 @@ function upgrade( $post_id, $section ) {
 	}
 }
 
+/**
+ * Upgrade template settings to version 1.4.3 format.
+ *
+ * @since 1.4.3
+ * @param array $template_settings The template settings data.
+ * @param int   $template_id The template post ID.
+ * @return void
+ */
 function upgrade_template( $template_settings, $template_id ) {
 
 	$template_instances = array();

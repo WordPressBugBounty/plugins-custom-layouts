@@ -1,9 +1,16 @@
 <?php
+/**
+ * Grid display handler class
+ *
+ * @package    Custom_Layouts
+ * @since      1.0.0
+ */
+
 namespace Custom_Layouts;
 
-use \add_shortcode;
-use \add_action;
-use \shortcode_atts;
+use add_shortcode;
+use add_action;
+use shortcode_atts;
 
 /**
  * Handles the frontend display of the filters
@@ -25,31 +32,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handles the frontend display of layouts and templates.
+ *
+ * Manages shortcodes for displaying custom layouts and templates.
+ *
+ * @since      1.0.0
+ * @package    Custom_Layouts
+ * @subpackage Custom_Layouts/includes
+ */
 class Grid {
 
 	const SHORTCODE_TAG          = 'custom-layouts';
 	const LAYOUT_SHORTCODE_TAG   = 'custom-layout';
 	const TEMPLATE_SHORTCODE_TAG = 'custom-template';
 
-	private static $registered_filters = false;
-	private static $filters;
-	/**
-	 * Initialize the class and set its properties.
-	 *
-	 * @since    1.0.0
-	 * @param      string    $plugin_name       The name of the plugin.
-	 * @param      string    $version    The version of this plugin.
-	 */
-	/*
-	public function __construct( $plugin_name, $version ) {
-
-		$this->plugin_name = $plugin_name;
-		$this->version = $version;
-
-	}*/
 
 	/**
-	 * Init...
+	 * Initialize the Grid class.
 	 *
 	 * @since    1.0.0
 	 */
@@ -57,6 +57,11 @@ class Grid {
 		add_action( 'init', 'Custom_Layouts\\Grid::wp_init', 10 );
 	}
 
+	/**
+	 * WordPress initialization hook callback.
+	 *
+	 * @return void
+	 */
 	public static function wp_init() {
 		add_shortcode( self::SHORTCODE_TAG, 'Custom_Layouts\\Grid::shortcode' );
 		add_shortcode( self::LAYOUT_SHORTCODE_TAG, 'Custom_Layouts\\Grid::layout_shortcode' );
@@ -97,6 +102,13 @@ class Grid {
 
 		return $output;
 	}
+
+	/**
+	 * The `[custom-layout]` shortcode.
+	 *
+	 * @param array $attributes Shortcode attributes.
+	 * @return string The rendered output.
+	 */
 	public static function layout_shortcode( $attributes ) {
 
 		$defaults = array(
@@ -126,6 +138,13 @@ class Grid {
 
 		return $output;
 	}
+
+	/**
+	 * The `[custom-template]` shortcode.
+	 *
+	 * @param array $attributes Shortcode attributes.
+	 * @return string The rendered output.
+	 */
 	public static function template_shortcode( $attributes ) {
 
 		$defaults = array(
@@ -148,15 +167,28 @@ class Grid {
 			return $output;
 		}
 
+		// Check if user has permission to render the target post_id.
+		$target_post_id = '' !== $attributes['post_id'] ? absint( $attributes['post_id'] ) : 0;
+		if ( ! Permissions::can_render_post_in_shortcode( $target_post_id ) ) {
+			return $output;
+		}
+
 		ob_start();
 		// Get the template data associated with the ID.
 		$template = new Template_Controller( $id );
-		$template->render( $attributes['post_id'] );
+		$template->render( (int) $attributes['post_id'] );
 		$output = ob_get_clean();
 
 		return $output;
 	}
 
+	/**
+	 * Get a layout instance by ID.
+	 *
+	 * @param int    $id The layout ID.
+	 * @param string $cache Whether to use cache.
+	 * @return Layout_Controller The layout controller instance.
+	 */
 	public static function get_layout( $id, $cache ) {
 
 		// Now create an instance of the Layout class and render.

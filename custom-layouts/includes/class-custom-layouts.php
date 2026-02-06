@@ -18,9 +18,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! defined( 'CUSTOM_LAYOUTS_VERSION' ) ) {
-	define( 'CUSTOM_LAYOUTS_VERSION', '1.4.12' );
+	define( 'CUSTOM_LAYOUTS_VERSION', '1.5.1' );
 }
 
+/**
+ * The core plugin class.
+ *
+ * This is used to define internationalization, admin-specific hooks, and
+ * public-facing site hooks.
+ *
+ * @since 1.0.0
+ */
 class Custom_Layouts {
 	/**
 	 * The loader that's responsible for maintaining and registering all hooks that power
@@ -28,7 +36,7 @@ class Custom_Layouts {
 	 *
 	 * @since    1.0.0
 	 * @access   protected
-	 * @var      Custom_Layouts_Loader    $loader    Maintains and registers all hooks for the plugin.
+	 * @var      Custom_Layouts\Core\Loader    $loader    Maintains and registers all hooks for the plugin.
 	 */
 	protected $loader;
 
@@ -51,6 +59,15 @@ class Custom_Layouts {
 	protected $version;
 
 	/**
+	 * The integrations instance.
+	 *
+	 * @since    1.0.0
+	 * @access   protected
+	 * @var      Custom_Layouts\Integrations    $integrations    The integrations instance.
+	 */
+	protected $integrations;
+
+	/**
 	 * Define the core functionality of the plugin.
 	 *
 	 * Set the plugin name and the plugin version that can be used throughout the plugin.
@@ -69,14 +86,13 @@ class Custom_Layouts {
 		$this->define_schema_hooks();
 		$this->upgrade();
 
-		// correctly load public / admin classes & hooks
-		if ( ( ! is_admin() ) || ( defined( 'DOING_AJAX' ) && DOING_AJAX ) ) {
+		// Correctly load public / admin classes & hooks.
+		if ( ( ! is_admin() ) || wp_doing_ajax() ) {
 			$this->define_frontend_hooks();
 		} elseif ( is_admin() ) {
 			$this->define_admin_hooks();
 		}
 
-		$this->define_ajax_hooks();
 		$this->setup_integrations();
 	}
 
@@ -98,135 +114,153 @@ class Custom_Layouts {
 	 */
 	private function load_dependencies() {
 
-		/* CORE */
+		/*
+		 * CORE.
+		 */
 		if ( ! defined( 'CUSTOM_LAYOUTS_PATH' ) ) {
-			define( 'CUSTOM_LAYOUTS_PATH', plugin_dir_path( dirname( __FILE__ ) ) );
+			define( 'CUSTOM_LAYOUTS_PATH', plugin_dir_path( __DIR__ ) );
 		}
 		if ( ! defined( 'CUSTOM_LAYOUTS_URL' ) ) {
-			define( 'CUSTOM_LAYOUTS_URL', plugin_dir_url( dirname( __FILE__ ) ) );
+			define( 'CUSTOM_LAYOUTS_URL', plugin_dir_url( __DIR__ ) );
 		}
 		/**
 		 * The class responsible for orchestrating the actions and filters of the
 		 * core plugin.
 		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/core/class-loader.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/core/class-loader.php';
 
 		/**
 		 * The class responsible for defining internationalization functionality
 		 * of the plugin.
 		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/core/class-i18n.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/core/class-i18n.php';
 
 		/**
 		 * The class responsible for handling updates based on plugin version
 		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/core/class-upgrade.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/core/class-upgrade.php';
 
 		/**
 		 * The class responsible for setting up the data types & structure for S&F
 		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/core/class-schema.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/core/class-schema.php';
 
 		/**
 		 * A class to store re-used WP data (post types, taxonomies) and avoid repeated processing / DB calls for that data
 		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/core/class-wp-data.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/core/class-wp-data.php';
 
 		/**
 		 * A class to validate input/ouput
 		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/core/class-validation.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/core/class-validation.php';
+
+		/**
+		 * Asset loader class for handling script and style dependencies
+		 */
+		require_once plugin_dir_path( __DIR__ ) . 'includes/class-asset-loader.php';
 
 		/**
 		 * A class to handle the method of storing & retrieving generated CSS
 		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/core/class-css-loader.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/core/class-css-loader.php';
 		/**
 		 * A class to handle interactions with WP cache
 		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/core/class-cache.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/core/class-cache.php';
 		/**
 		 * A class to handle interacting with options data
 		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/core/class-data.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/core/class-data.php';
 
 		/**
 		 * The class contains utility functions that are commonly used throughout
 		 * side of the site.
 		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-custom-layouts-util.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/class-custom-layouts-util.php';
+
+		/**
+		 * Permissions class for shortcode validation
+		 */
+		require_once plugin_dir_path( __DIR__ ) . 'includes/class-custom-layouts-permissions.php';
 
 		/**
 		 * The class responsible for defining all actions that occur in the admin area.
 		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-custom-layouts-admin.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/class-custom-layouts-admin.php';
 
 		/**
 		 * The class responsible for defining all actions that occur in the public-facing
 		 * side of the site.
 		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-custom-layouts-frontend.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/class-custom-layouts-frontend.php';
 
 		/**
 		 * The class contains REST API functions
 		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-custom-layouts-rest-api.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/class-custom-layouts-rest-api.php';
 
 		/**
 		 * The class contains Settings related functions
 		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-custom-layouts-settings.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/settings/class-setting.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/settings/class-query.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/settings/class-grid.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/settings/class-defaults.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/class-custom-layouts-settings.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/settings/class-setting.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/settings/class-query.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/settings/class-grid.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/settings/class-defaults.php';
 
-		/* ADMIN */
+		/*
+		 * ADMIN.
+		 */
 
 		/**
 		 * The class contains Admin options related functions
 		 */
 		// require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/admin/class-options.php';
 
-		/* FRONTEND */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-custom-layouts-query.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/query/class-selector.php';
+		/*
+		 * FRONTEND.
+		 */
+		require_once plugin_dir_path( __DIR__ ) . 'includes/class-custom-layouts-query.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/class-custom-layouts-grid.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/layout/class-controller.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/template/class-controller.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/template/elements/class-element-base.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/template/elements/class-title.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/template/elements/class-excerpt.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/template/elements/class-content.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/template/elements/class-author.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/template/elements/class-published-date.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/template/elements/class-modified-date.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/template/elements/class-custom-field.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/template/elements/class-taxonomy.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/template/elements/class-post-type.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/template/elements/class-link.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/template/elements/class-comment-count.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/template/elements/class-text.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/template/elements/class-featured-media.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/template/elements/class-section.php';
 
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-custom-layouts-grid.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/layout/class-controller.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/template/class-controller.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/template/elements/class-element-base.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/template/elements/class-title.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/template/elements/class-excerpt.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/template/elements/class-content.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/template/elements/class-author.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/template/elements/class-published-date.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/template/elements/class-modified-date.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/template/elements/class-custom-field.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/template/elements/class-taxonomy.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/template/elements/class-post-type.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/template/elements/class-link.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/template/elements/class-comment-count.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/template/elements/class-text.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/template/elements/class-featured-media.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/template/elements/class-section.php';
+		/*
+		 * Integrations.
+		 */
+		require_once plugin_dir_path( __DIR__ ) . 'includes/class-custom-layouts-integrations.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/integrations/woocommerce/class-woocommerce.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/integrations/gutenberg/class-gutenberg.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/integrations/wordpress-importer/class-wordpress-importer.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/integrations/search-filter-pro/class-search-filter-pro.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/integrations/wpml/class-wpml.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/integrations/polylang/class-polylang.php';
 
-		/* Integrations */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-custom-layouts-integrations.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/integrations/woocommerce/class-woocommerce.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/integrations/gutenberg/class-gutenberg.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/integrations/wordpress-importer/class-wordpress-importer.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/integrations/search-filter-pro/class-search-filter-pro.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/integrations/wpml/class-wpml.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/integrations/polylang/class-polylang.php';
-
-		/* Upgrades */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/upgrade/1.3.0.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/upgrade/1.4.0.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/upgrade/1.4.1.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/upgrade/1.4.2.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/upgrade/1.4.3.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/upgrade/1.4.8.php';
+		/*
+		 * Upgrades.
+		 */
+		require_once plugin_dir_path( __DIR__ ) . 'includes/upgrade/1.3.0.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/upgrade/1.4.0.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/upgrade/1.4.1.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/upgrade/1.4.2.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/upgrade/1.4.3.php';
+		require_once plugin_dir_path( __DIR__ ) . 'includes/upgrade/1.4.8.php';
 
 		$this->loader = new Custom_Layouts\Core\Loader();
 	}
@@ -246,13 +280,14 @@ class Custom_Layouts {
 	}
 
 	/**
-	 * Attaches the upgrade routines on plugins_loaded
+	 * Attaches the upgrade routines on plugins_loaded.
 	 *
 	 * @since    1.4.0
 	 * @access   private
 	 */
 	private function upgrade() {
-		$this->loader->add_action( 'plugins_loaded', 'Custom_Layouts\Core\upgrade', 'upgrade' );
+		$upgrade = new Custom_Layouts\Core\Upgrade();
+		$this->loader->add_action( 'plugins_loaded', $upgrade, 'upgrade' );
 	}
 
 	/**
@@ -266,24 +301,18 @@ class Custom_Layouts {
 
 		$plugin_admin = new Custom_Layouts\Admin( $this->get_plugin_name(), $this->get_version() );
 
-		// scripts & css
+		// Scripts & css.
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_styles', 10 );
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts', 10 );
 
-		// admin pages
+		// Admin pages.
 		// $this->loader->add_action( 'add_meta_boxes', $plugin_admin, 'remove_metaboxes', 1000 );
 		$this->loader->add_action( 'add_meta_boxes', $plugin_admin, 'add_metaboxes', 20 );
-		$this->loader->add_action( 'admin_head', $plugin_admin, 'admin_head', 20 );
-		$this->loader->add_action( 'admin_footer', $plugin_admin, 'admin_footer', 20 );
 
 		$this->loader->add_action( 'admin_menu', $plugin_admin, 'admin_pages', 9 );
 		$this->loader->add_action( 'admin_menu', $plugin_admin, 'admin_pages_more_menu_items', 10 );
-
 	}
-	private function define_ajax_hooks() {
 
-		// stop doing this
-	}
 
 	/**
 	 * Register all of the hooks related to the public-facing functionality
@@ -296,23 +325,26 @@ class Custom_Layouts {
 
 		$plugin_public = new Custom_Layouts\Frontend( $this->get_plugin_name(), $this->get_version() );
 
-		// scripts & css
+		// Scripts & css.
 		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_styles', 100 );
 		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'register_scripts' );
-
 	}
 	/**
-	 * Register
-	 * of the plugin.
+	 * Setup integrations for the plugin.
 	 *
 	 * @since    1.0.0
 	 * @access   private
 	 */
 	private function setup_integrations() {
 		$this->integrations = Custom_Layouts\Integrations::init();
-
 	}
 
+	/**
+	 * Define schema hooks for custom post types.
+	 *
+	 * @since    1.0.0
+	 * @access   private
+	 */
 	private function define_schema_hooks() {
 
 		$schema = new Custom_Layouts\Core\Schema( $this->get_plugin_name(), $this->get_version() );
@@ -344,7 +376,7 @@ class Custom_Layouts {
 	 * The reference to the class that orchestrates the hooks with the plugin.
 	 *
 	 * @since     1.0.0
-	 * @return    Custom_Layouts_Loader    Orchestrates the hooks of the plugin.
+	 * @return    Custom_Layouts\Core\Loader    Orchestrates the hooks of the plugin.
 	 */
 	public function get_loader() {
 		return $this->loader;

@@ -1,41 +1,48 @@
 <?php
+/**
+ * CSS Loader class file.
+ *
+ * @link       http://codeamp.com
+ * @since      1.0.0
+ *
+ * @package    Custom_Layouts
+ * @subpackage Custom_Layouts/includes/core
+ */
 
 namespace Custom_Layouts\Core;
 
 use Custom_Layouts\Settings;
 use Custom_Layouts\Template\Controller as Template_Controller;
 
-/**
- * Fired during plugin activation
- *
- * @link       http://codeamp.com
- * @since      1.0.0
- *
- * @package    Custom_Layouts
- * @subpackage Custom_Layouts/includes
- */
-
 // If this file is called directly, abort.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handles CSS generation and management for templates and layouts.
+ *
+ * @since 1.0.0
+ */
 class CSS_Loader {
 
+	/**
+	 * Generates complete CSS for all templates and layouts.
+	 *
+	 * @since 1.0.0
+	 * @param array $regenerate_ids Array of template IDs to force regeneration.
+	 * @return string The generated CSS.
+	 */
 	private static function generate_css( $regenerate_ids = array() ) {
-		// load in regular stylesheet (and concatenate)
-
+		// Load in regular stylesheet (and concatenate).
 		do_action( 'custom-layouts/css/generate/start' );
 		$base_css = '';
 		ob_start();
-		require_once trailingslashit( CUSTOM_LAYOUTS_PATH ) . 'assets/css/frontend/custom-layouts.css';
+		require_once trailingslashit( CUSTOM_LAYOUTS_PATH ) . 'assets/frontend/app.css';
 		$base_css = ob_get_clean();
 		$css      = self::clean_css( $base_css );
-		// TODO - this is not working when in DEV mode, it seems to strip all the template code (source map issue?)
-
 		$css     .= self::get_layout_css();
-		// loop through templates, and build their CSS
-		// TODO - cache the CSS for each template, and only rebuild that particular template CSS
+		// Loop through templates, and build their CSS.
 
 		$default_template_data = Settings::get_default_template();
 		$css                  .= self::get_package_css( 'default', 'Default', $default_template_data );
@@ -51,13 +58,20 @@ class CSS_Loader {
 		do_action( 'custom-layouts/css/generate/finish' );
 		return $css;
 	}
-	// for now just generates the responsive classes + breakpoints
+
+	/**
+	 * Generates responsive layout CSS with breakpoints.
+	 *
+	 * For now just generates the responsive classes and breakpoints.
+	 *
+	 * @since    1.0.0
+	 * @return   string The layout CSS.
+	 */
 	public static function get_layout_css() {
 
 		$breakpoints = Settings::get_option( 'breakpoints' );
 
-		$css = '';
-		// todo - implement grid css instead of all of this
+		$css  = '';
 		$css .= '@media only screen and (min-width: 0px){';
 		$css .= self::get_layout_cols( 12, 'xs' );
 		$css .= '}';
@@ -76,6 +90,14 @@ class CSS_Loader {
 
 		return $css;
 	}
+
+	/**
+	 * Generates CSS for layout columns for a specific breakpoint.
+	 *
+	 * @param int    $columns Number of columns.
+	 * @param string $size_id The size identifier (xs, s, m, l).
+	 * @return string The column CSS.
+	 */
 	private static function get_layout_cols( $columns, $size_id ) {
 
 		$css        = '';
@@ -83,14 +105,20 @@ class CSS_Loader {
 
 		for ( $column = 1; $column <= $columns; $column++ ) {
 			$col_class     = $base_class . '.cl-layout--col-' . sanitize_key( $size_id ) . '-' . $column . ' .cl-layout__item';
-			$percent_width = self::round_down( 100 / $column, 4 ); // round_down casts to float
+			$percent_width = self::round_down( 100 / $column, 4 ); // round_down casts to float.
 			$css          .= $col_class . '{width:calc(' . $percent_width . '% - var( --cl-layout-gap-c ));flex-basis:calc(' . $percent_width . '% - var( --cl-layout-gap-c ));}';
 		}
 
 		return $css;
 	}
 
-
+	/**
+	 * Rounds down a number to a specified precision.
+	 *
+	 * @param float $value     The value to round down.
+	 * @param int   $precision Number of decimal places.
+	 * @return float The rounded down value.
+	 */
 	private static function round_down( $value, $precision ) {
 		$value     = (float) $value;
 		$precision = (int) $precision;
@@ -98,17 +126,26 @@ class CSS_Loader {
 			$precision = 0;
 		}
 
-		$decPointPosition = strpos( $value, '.' );
-		if ( $decPointPosition === false ) {
+		$dec_point_position = strpos( (string) $value, '.' );
+		if ( $dec_point_position === false ) {
 			return $value;
 		}
-		return (float) ( substr( $value, 0, $decPointPosition + $precision + 1 ) );
+		return (float) ( substr( (string) $value, 0, $dec_point_position + $precision + 1 ) );
 	}
+
+	/**
+	 * Gets the CSS for a specific template.
+	 *
+	 * @since 1.0.0
+	 * @param int|object $template_arg     The template ID or post object.
+	 * @param array      $regenerate_ids   Array of template IDs to force regeneration.
+	 * @return string The template CSS.
+	 */
 	public static function get_template_css( $template_arg, $regenerate_ids = array() ) {
 
 		$css = '';
 		if ( is_scalar( $template_arg ) ) {
-			// then it is the ID
+			// Then it is the ID.
 			$template_id = absint( $template_arg );
 			$template    = get_post( $template_id );
 		} elseif ( is_object( $template_arg ) ) {
@@ -118,20 +155,20 @@ class CSS_Loader {
 			return '';
 		}
 
-		// so regenerate if needed
+		// So regenerate if needed.
 		$should_regenerate = false;
-		if ( empty( $regenerate_ids ) || in_array( $template_id, $regenerate_ids ) ) {
+		if ( empty( $regenerate_ids ) || in_array( $template_id, $regenerate_ids, true ) ) {
 			$should_regenerate = true;
 		}
 
 		if ( ! $should_regenerate ) {
-			// if no cached version found
+			// If no cached version found.
 			$cached_template_css = get_post_meta( $template_id, 'custom-layouts-template-css', true );
 			if ( $cached_template_css ) {
 				$css  = '/* Template: ' . esc_html( $template->post_title ) . " */\r\n";
 				$css .= self::clean_css( $cached_template_css );
 			} else {
-				// force generation
+				// Force generation.
 				$should_regenerate = true;
 			}
 		}
@@ -145,9 +182,25 @@ class CSS_Loader {
 
 		return $css;
 	}
+
+	/**
+	 * Escapes and strips all tags from input.
+	 *
+	 * @since    1.0.0
+	 * @param    string $input  The input string.
+	 * @return   string         The escaped and stripped string.
+	 */
 	private static function esc_n_strip( $input ) {
 		return esc_html( wp_strip_all_tags( $input ) );
 	}
+
+	/**
+	 * Cleans and minifies CSS by removing comments and extra whitespace.
+	 *
+	 * @since    1.0.0
+	 * @param    string $css  The CSS to clean.
+	 * @return   string       The cleaned CSS.
+	 */
 	private static function clean_css( $css ) {
 		$css = wp_strip_all_tags( $css );
 		$css = preg_replace( '/\/\*((?!\*\/).)*\*\//', '', $css );
@@ -156,6 +209,14 @@ class CSS_Loader {
 		$css = preg_replace( '/;}/', '}', $css );
 		return $css;
 	}
+
+	/**
+	 * Parses CSS settings array into CSS string.
+	 *
+	 * @since    1.0.0
+	 * @param    array $settings  The settings array.
+	 * @return   string           The parsed CSS.
+	 */
 	public static function parse_css_settings( $settings ) {
 		$css = '';
 
@@ -164,12 +225,21 @@ class CSS_Loader {
 		}
 		return $css;
 	}
+
+	/**
+	 * Parses a single CSS setting into CSS string.
+	 *
+	 * @since    1.0.0
+	 * @param    string $property_name  The property name.
+	 * @param    mixed  $property_data  The property data.
+	 * @return   string                 The parsed CSS property.
+	 */
 	public static function parse_css_setting( $property_name, $property_data ) {
 		$unit = 'px';
 
 		$is_empty = false;
 		if ( is_scalar( $property_data ) ) {
-			// we want to allow "nullish" values
+			// We want to allow "nullish" values.
 			if ( trim( $property_data ) === '' ) {
 				$is_empty = true;
 			}
@@ -183,216 +253,196 @@ class CSS_Loader {
 		switch ( $property_name ) {
 			case 'textColor':
 				if ( is_scalar( $property_data ) ) {
-					return 'color: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'color: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'backgroundColor':
 				if ( is_scalar( $property_data ) ) {
-					return 'background-color: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'background-color: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'fill':
 				if ( is_scalar( $property_data ) ) {
-					return 'fill: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'fill: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'backgroundGradient':
 				if ( is_scalar( $property_data ) ) {
-					return 'background-image: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'background-image: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'backgroundPosition':
 				if ( is_scalar( $property_data ) ) {
-					return 'background-position: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'background-position: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'backgroundRepeat':
 				if ( is_scalar( $property_data ) ) {
-					return 'background-repeat: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'background-repeat: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'backgroundSize':
 				if ( is_scalar( $property_data ) ) {
-					return 'background-size: ' . sanitize_key( $property_data, true ) . ';';
+					return 'background-size: ' . sanitize_key( $property_data ) . ';';
 				}
 				break;
 			case 'width':
 				if ( is_scalar( $property_data ) ) {
-					return 'width: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'width: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'maxWidth':
 				if ( is_scalar( $property_data ) ) {
-					return 'max-width: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'max-width: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'height':
 				if ( is_scalar( $property_data ) ) {
-					return 'height: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'height: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'lineHeight':
 				if ( is_scalar( $property_data ) ) {
-					return 'line-height: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'line-height: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'display':
 				if ( is_scalar( $property_data ) ) {
-					return 'display: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'display: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'position':
 				if ( is_scalar( $property_data ) ) {
-					return 'position: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'position: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'top':
 				if ( is_scalar( $property_data ) ) {
-					return 'top: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'top: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'left':
 				if ( is_scalar( $property_data ) ) {
-					return 'left: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'left: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'right':
 				if ( is_scalar( $property_data ) ) {
-					return 'right: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'right: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'bottom':
 				if ( is_scalar( $property_data ) ) {
-					return 'bottom: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'bottom: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'flex':
 				if ( is_scalar( $property_data ) ) {
-					return 'flex: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'flex: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'flexGrow':
 				if ( is_scalar( $property_data ) ) {
-					return 'flex-grow: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'flex-grow: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'flexShrink':
 				if ( is_scalar( $property_data ) ) {
-					return 'flex-shrink: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'flex-shrink: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
-			// case 'borderRadius':
-				// return 'border-radius-color: ' . self::esc_n_strip( $property_value, true);
-				// break;
 			case 'borderRadius':
 				$property_value = self::parse_unit_quad( $property_data );
 
 				return 'border-radius: ' . self::esc_n_strip( $property_value ) . ';';
-				break;
 			case 'paddingSize':
 					$property_value = self::parse_unit_quad( $property_data );
-					// $property_value = implode( ' ', $property_vals );
 				return 'padding: ' . self::esc_n_strip( $property_value ) . ';';
-					break;
 			case 'padding':
 				if ( is_scalar( $property_data ) ) {
-					return 'padding: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'padding: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'paddingTop':
 				if ( is_scalar( $property_data ) ) {
-					return 'padding-top: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'padding-top: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'paddingRight':
 				if ( is_scalar( $property_data ) ) {
-					return 'padding-right: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'padding-right: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'paddingBottom':
 				if ( is_scalar( $property_data ) ) {
-					return 'padding-bottom: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'padding-bottom: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'paddingLeft':
 				if ( is_scalar( $property_data ) ) {
-					return 'padding-left: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'padding-left: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'margin':
 				if ( is_scalar( $property_data ) ) {
-					return 'margin: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'margin: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'marginTop':
 				if ( is_scalar( $property_data ) ) {
-					return 'margin-top: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'margin-top: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'marginRight':
 				if ( is_scalar( $property_data ) ) {
-					return 'margin-right: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'margin-right: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'marginBottom':
 				if ( is_scalar( $property_data ) ) {
-					return 'margin-bottom: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'margin-bottom: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'marginLeft':
 				if ( is_scalar( $property_data ) ) {
-					return 'margin-left: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'margin-left: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'marginSize':
 				$property_value = self::parse_unit_quad( $property_data );
-				// $property_value = implode( ' ', $property_vals );
 				return 'margin: ' . self::esc_n_strip( $property_value ) . ';';
-				break;
 			case 'borderWidth':
 				if ( is_scalar( $property_data ) ) {
-					return 'border-width: ' . self::esc_n_strip( $property_data, true ) . 'px;'; // TODO - we should probably add this as a prop in the JS app if the width has been set.
+					return 'border-width: ' . self::esc_n_strip( $property_data ) . 'px;';
 				}
 				break;
 			case 'borderColor':
 				if ( is_scalar( $property_data ) ) {
-					return 'border-color: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'border-color: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'align':
 				if ( is_scalar( $property_data ) ) {
-					return 'text-align: ' . sanitize_key( $property_data, true ) . ';';
+					return 'text-align: ' . sanitize_key( $property_data ) . ';';
 				}
 				break;
 			case 'alignSelf':
 				if ( is_scalar( $property_data ) ) {
-					return 'align-self: ' . sanitize_key( $property_data, true ) . ';';
+					return 'align-self: ' . sanitize_key( $property_data ) . ';';
 				}
 				break;
 			case 'alignItems':
 				if ( is_scalar( $property_data ) ) {
-					return 'align-items: ' . sanitize_key( $property_data, true ) . ';';
+					return 'align-items: ' . sanitize_key( $property_data ) . ';';
 				}
 				break;
 			case 'justifyContent':
 				if ( is_scalar( $property_data ) ) {
-					return 'justify-content: ' . sanitize_key( $property_data, true ) . ';';
+					return 'justify-content: ' . sanitize_key( $property_data ) . ';';
 				}
 				break;
 			case 'fontSize':
 				if ( is_scalar( $property_data ) ) {
-					// $fontSize = '27.2';
-					/*
-					if ( 'small' === $property_data ) {
-
-					}
-					if ( 'medium' === $property_data ) {
-
-					}
-					if ( 'large' === $property_data ) {
-
-					}*/
-
 					if ( $property_data !== '' ) {
 						return 'font-size: ' . sanitize_key( $property_data ) . 'px;';
 					}
@@ -400,7 +450,7 @@ class CSS_Loader {
 				break;
 			case 'fontSizeCustom':
 				if ( is_scalar( $property_data ) ) {
-					return 'font-size: ' . sanitize_key( $property_data . $unit, true ) . ';';
+					return 'font-size: ' . sanitize_key( $property_data . $unit ) . ';';
 				}
 				break;
 			case 'fontFamily':
@@ -408,7 +458,7 @@ class CSS_Loader {
 					if ( $property_data === 'default' ) {
 						return '';
 					}
-					return 'font-family: ' . self::esc_n_strip( $property_data, true ) . ';';
+					return 'font-family: ' . self::esc_n_strip( $property_data ) . ';';
 				}
 				break;
 			case 'fontFormatBold':
@@ -441,7 +491,16 @@ class CSS_Loader {
 			default:
 				break;
 		}
+		return '';
 	}
+
+	/**
+	 * Parses a quad unit property (top, right, bottom, left).
+	 *
+	 * @since    1.0.0
+	 * @param    array $property_data  The property data array.
+	 * @return   string                The parsed CSS value.
+	 */
 	public static function parse_unit_quad( $property_data ) {
 
 		$property_value = '0px';
@@ -464,30 +523,44 @@ class CSS_Loader {
 		}
 		return $property_value;
 	}
+
+	/**
+	 * Parses a value and unit into a CSS unit string.
+	 *
+	 * @since    1.0.0
+	 * @param    mixed  $value  The value.
+	 * @param    string $unit   The unit.
+	 * @return   string         The parsed CSS unit.
+	 */
 	public static function parse_unit( $value, $unit ) {
 		return intval( $value ) . sanitize_text_field( $unit );
 	}
+
+	/**
+	 * Gets the background CSS for a template.
+	 *
+	 * @since    1.0.0
+	 * @param    array $template  The template data.
+	 * @return   void
+	 * @phpstan-ignore method.unused
+	 */
 	private static function get_template_background_css( $template ) {
-		// TODO - do this when the user sets an image from the media library
-		/*
-		$show_featured_image = $template['showFeaturedImage'];
-		if ( 'yes' === $show_featured_image ) {
-			$image_postion = $template['imagePosition'];
-			$image_size = $template['imageSourceSize'];
-
-			$attachment_meta = Util::get_image_by_size( $post_attachment_id, $image_size );
-			if ( $attachment_meta ) {
-				$image_data[ $size_name ] = $attachment_meta;
-			}
-
-		}*/
 	}
+
+	/**
+	 * Gets the complete CSS package for a template.
+	 *
+	 * @since    1.0.0
+	 * @param    string $template_id    The template ID.
+	 * @param    string $template_name  The template name.
+	 * @param    array  $template_data  The template data.
+	 * @return   string                 The generated CSS.
+	 */
 	private static function get_package_css( $template_id, $template_name, $template_data ) {
-		$css = '';
-		// $template_id = $template->ID;
+		$css  = '';
 		$css .= "\r\n/* Template: " . esc_html( $template_name ) . " */\r\n";
 
-		// add template specific CSS:
+		// Add template specific CSS.
 		$template_class = self::get_template_class( $template_id );
 
 		if ( $template_data ) {
@@ -495,7 +568,7 @@ class CSS_Loader {
 			$css .= self::parse_css_settings( $template_data['template'] );
 			$css .= '}';
 
-			// now add the instances CSS
+			// Now add the instances CSS.
 			if ( isset( $template_data['instances'] ) && is_array( $template_data['instances'] ) ) {
 				foreach ( $template_data['instances'] as $instance ) {
 					$css .= self::get_instance_css( $instance, $template_id, $template_data['template'] );
@@ -504,27 +577,51 @@ class CSS_Loader {
 		}
 		return $css;
 	}
+
+	/**
+	 * Gets the CSS class selector for a template.
+	 *
+	 * @since    1.0.0
+	 * @param    string $template_id  The template ID.
+	 * @return   string               The CSS class selector.
+	 */
 	private static function get_template_class( $template_id ) {
 		return '.cl-template--id-' . intval( $template_id );
 	}
 
+	/**
+	 * Gets the CSS class selector for an element.
+	 *
+	 * @since    1.0.0
+	 * @param    string $element_id  The element ID.
+	 * @return   string              The CSS class selector.
+	 * @phpstan-ignore method.unused
+	 */
 	private static function get_element_class( $element_id ) {
 		return '.cl-element-' . esc_attr( $element_id );
 	}
 
-
+	/**
+	 * Gets the CSS for a template element instance.
+	 *
+	 * @since    1.0.0
+	 * @param    array  $instance     The instance data.
+	 * @param    string $template_id  The template ID.
+	 * @param    array  $template     The template data.
+	 * @return   string               The generated CSS.
+	 */
 	private static function get_instance_css( $instance, $template_id, $template ) {
-		$template_controller = new Template_Controller( $template_id );
+		$template_controller = new Template_Controller( (int) $template_id );
 		$element_id          = $instance['elementId'];
 		$html_tag            = isset( $instance['data']['htmlTag'] ) ? Validation::esc_html_tag( $instance['data']['htmlTag'] ) : 'div';
 		$template_class      = self::get_template_class( $template_id );
 		$css                 = '';
 
-		// if the element provides its own css, then use that, otherwise
-		// just fallback and use the default processings
+		// If the element provides its own css, then use that, otherwise
+		// just fallback and use the default processings.
 		$element = $template_controller->element( $element_id );
 		if ( ! $element ) {
-			_doing_it_wrong( __METHOD__, sprintf( esc_html__( 'An element with the ID "%1$s" was not found / registered.', 'custom-layouts' ), $element_id ), '1.3.0' );
+			_doing_it_wrong( __METHOD__, sprintf( esc_html__( 'An element with the ID "%1$s" was not found / registered.', 'custom-layouts' ), esc_html( $element_id ) ), '1.3.0' );
 			return $css;
 		}
 		$instance_css = $element->get_css( $instance, $template_class, $template );
@@ -534,18 +631,26 @@ class CSS_Loader {
 		return $css;
 	}
 
+	/**
+	 * Saves the generated CSS to the file system.
+	 *
+	 * @since    1.0.0
+	 * @param    array $regenerate_ids  Array of template IDs to force regeneration.
+	 * @return   void
+	 */
 	public static function save_css( $regenerate_ids = array() ) {
 		$css = self::generate_css( $regenerate_ids );
 
-		// Stash CSS in uploads directory
+		// Stash CSS in uploads directory.
 		if ( ! function_exists( 'WP_Filesystem' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/file.php'; // We will probably need to load this file
+			/** @phpstan-ignore requireOnce.fileNotFound */
+			require_once ABSPATH . 'wp-admin/includes/file.php'; // We will probably need to load this file.
 		}
-		$upload_dir = wp_upload_dir(); // Grab uploads folder array
-		$cl_dir     = trailingslashit( $upload_dir['basedir'] ) . 'custom-layouts/'; // Set storage directory path
+		$upload_dir = wp_upload_dir(); // Grab uploads folder array.
+		$cl_dir     = trailingslashit( $upload_dir['basedir'] ) . 'custom-layouts/'; // Set storage directory path.
 
 		global $wp_filesystem;
-		// Try to init the file system and watch out for the return value of 'false' or 'null'
+		// Try to init the file system and watch out for the return value of 'false' or 'null'.
 		$is_filesystem_ready = WP_Filesystem();
 		if ( $is_filesystem_ready !== true ) {
 			return;
@@ -554,9 +659,9 @@ class CSS_Loader {
 		$filesystem = $wp_filesystem;
 		$dir_exists = $filesystem->exists( $cl_dir );
 		if ( ! $dir_exists ) {
-			$mk_dir_result = $filesystem->mkdir( $cl_dir ); // Try to create the folder
+			$mk_dir_result = $filesystem->mkdir( $cl_dir ); // Try to create the folder.
 			if ( ! $mk_dir_result ) {
-				// log error
+				// Log error.
 				if ( defined( 'WP_DEBUG' ) ) {
 					if ( WP_DEBUG === true ) {
 						error_log( esc_html__( 'Custom Layouts: Unable to write folder, info:', 'custom-layouts' ) );
@@ -574,9 +679,9 @@ class CSS_Loader {
 			if ( defined( 'FS_CHMOD_FILE' ) ) {
 				$file_permission = FS_CHMOD_FILE;
 			}
-			$file_result = $filesystem->put_contents( $cl_dir . 'style.css', $css, $file_permission ); // Finally, store the file
+			$file_result = $filesystem->put_contents( $cl_dir . 'style.css', $css, $file_permission ); // Finally, store the file.
 			if ( $file_result ) {
-				// save in an option if this method is successful
+				// Save in an option if this method is successful.
 				$created_file = true;
 			} else {
 				$created_file = false;
@@ -590,32 +695,50 @@ class CSS_Loader {
 		}
 
 		if ( $created_file ) {
-			// all good, use the CSS file
+			// All good, use the CSS file.
 			self::set_mode( 'file-system' );
 		} else {
-			// then we need to switch to generating via ajax
-			// self::set_mode( 'admin-ajax' );
-
-			// then we need to switch to generating inline
+			// Then we need to switch to generating inline.
 			self::set_mode( 'inline' );
 		}
 
-		self::set_version_id(); // update the ID so the request won't be cached
+		self::set_version_id(); // Update the ID so the request won't be cached.
 	}
 
+	/**
+	 * Sets the CSS loading mode.
+	 *
+	 * @since    1.0.0
+	 * @param    string $mode  The CSS loading mode.
+	 * @return   void
+	 */
 	private static function set_mode( $mode ) {
 		update_option( 'custom_layouts_css_mode', sanitize_key( $mode ), false );
 	}
 
+	/**
+	 * Sets the CSS version ID.
+	 *
+	 * @since    1.0.0
+	 * @return   void
+	 */
 	private static function set_version_id() {
 		$version_id = absint( get_option( 'custom_layouts_css_version_id' ) );
-		$version_id++;
-		// I guess we don't want this number to grow forever, so when it hits 1000 reset it
+		++$version_id;
+		// I guess we don't want this number to grow forever, so when it hits 1000 reset it.
 		if ( $version_id === 1000 ) {
 			$version_id = 1;
 		}
 		update_option( 'custom_layouts_css_version_id', absint( $version_id ), false );
 	}
+
+	/**
+	 * Gets the CSS version number.
+	 *
+	 * @since    1.0.0
+	 * @param    int $plugin_version  The plugin version.
+	 * @return   int                  The CSS version.
+	 */
 	public static function get_version( $plugin_version = -1 ) {
 		$version = 0;
 		if ( 'file-system' === self::get_mode() ) {
@@ -626,15 +749,22 @@ class CSS_Loader {
 		return $version;
 	}
 
+	/**
+	 * Gets the current CSS loading mode.
+	 *
+	 * @since    1.0.0
+	 * @return   string  The CSS loading mode.
+	 */
 	public static function get_mode() {
 		return get_option( 'custom_layouts_css_mode' );
 	}
 
 	/**
-	 * Returns a url to the static CSS file, or url to an ajax action for generating
-	 * the CSS on the fly
+	 * Returns a URL to the static CSS file, or URL to an ajax action for generating
+	 * the CSS on the fly.
 	 *
 	 * @since    1.0.0
+	 * @return   string  The uploads URL.
 	 */
 	private static function uploads_url() {
 		$upload_dir = wp_get_upload_dir();
@@ -644,24 +774,21 @@ class CSS_Loader {
 		}
 		return str_replace( 'https://', 'http://', $upload_url );
 	}
+
+	/**
+	 * Gets the CSS URL based on the current mode.
+	 *
+	 * @since    1.0.0
+	 * @return   string|void  The CSS URL.
+	 */
 	public static function get_css_url() {
 		if ( 'file-system' === self::get_mode() ) {
 			$upload_dir = wp_get_upload_dir();
 			$url        = trailingslashit( self::uploads_url() ) . 'custom-layouts/style.css';
 			return $url;
-		} elseif ( 'admin-ajax' === self::get_mode() ) {
-			// we don't want to generate via admin-ajax anymore... it's bad
-			// return add_query_arg( 'action', 'custom_layouts_css', admin_url( 'admin-ajax.php' ) );
-			// so load the base CSS styles ( and only load the others inline where used )
 		} elseif ( 'inline' === self::get_mode() ) {
-			// so load the base CSS styles ( and only load the others inline where used ).
-			return trailingslashit( CUSTOM_LAYOUTS_URL ) . 'assets/css/frontend/custom-layouts.css';
-		} else {
-			// it looks like it's not been initialised yet - so attempt to setup
-			// should be done already by plugin activation so leave commented
-			// self::save_css();
+			// So load the base CSS styles ( and only load the others inline where used ).
+			return trailingslashit( CUSTOM_LAYOUTS_URL ) . 'assets/frontend/app.css';
 		}
 	}
 }
-
-

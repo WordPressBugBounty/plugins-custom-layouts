@@ -24,9 +24,16 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Link extends Element_Base {
 
-	private $post;
-
-	public function render( $post, $instance, $template, $return = false ) {
+	/**
+	 * Render the link element.
+	 *
+	 * @param \WP_Post $post Post object.
+	 * @param array    $instance Element instance data.
+	 * @param array    $template Template data.
+	 * @param bool     $return_output Whether to return the output instead of echoing.
+	 * @return string|void The output if $return_output is true, void otherwise.
+	 */
+	public function render( $post, $instance, $template, $return_output = false ) {
 
 		$instance_data = $instance['data'];
 		$element_type  = $instance['elementId'];
@@ -48,37 +55,52 @@ class Link extends Element_Base {
 
 		$output = parent::run_post_render_hooks( $output, $element_type, $instance_data, $post, $template );
 
-		if ( $return ) {
+		if ( $return_output ) {
 			return $output;
 		}
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Output is pre-escaped by esc_html(), esc_attr() and parent::run_post_render_hooks()
 		echo $output;
 	}
 
+	/**
+	 * Get the permalink for a post.
+	 *
+	 * @param \WP_Post $post Post object.
+	 * @return string The post permalink.
+	 */
 	public function get_data( $post ) {
 		return get_permalink( $post->ID );
 	}
 
 
+	/**
+	 * Get CSS for the link element.
+	 *
+	 * @param array  $instance Element instance data.
+	 * @param string $template_class Template CSS class.
+	 * @param array  $template Template data.
+	 * @return string The generated CSS.
+	 */
 	public function get_css( $instance, $template_class, $template = array() ) {
 		$instance_class = $this->get_instance_class( $instance['id'] );
-		$child_selector = '.cl-element-link__anchor'; // anchor selector
+		$child_selector = '.cl-element-link__anchor'; // Anchor selector.
 
-		// grab the prop
+		// Grab the prop.
 		$parent_properties = array();
-		// move margin on to the parent
+		// Move margin on to the parent.
 		$parent_properties['justifyContent'] = $this->get_align_justify( $instance['data']['align'] );
 		$parent_properties['align']          = $instance['data']['align'];
-		unset( $instance['data']['align'] ); // keep the rest
+		unset( $instance['data']['align'] ); // Keep the rest.
 
 		$css      = '/* ' . $instance['elementId'] . ' */';
 		$html_tag = isset( $instance['data']['htmlTag'] ) ? Validation::esc_html_tag( $instance['data']['htmlTag'] ) : 'div';
 
-		// parent node
+		// Parent node.
 		$css  = $template_class . ' ' . $html_tag . $instance_class . '{';
 		$css .= CSS_Loader::parse_css_settings( $parent_properties );
 		$css .= '}';
 
-		// child / inline node
+		// Child / inline node.
 		$full_child_selector = $template_class . ' ' . $html_tag . $instance_class . ' ' . $child_selector;
 		$css                .= $full_child_selector . '{';
 		$width_mode          = isset( $instance['data']['widthMode'] ) ? $instance['data']['widthMode'] : 'full';
@@ -88,7 +110,7 @@ class Link extends Element_Base {
 		$css .= CSS_Loader::parse_css_settings( $instance['data'] );
 		$css .= '}';
 
-		// now add styles to link hover
+		// Now add styles to link hover.
 
 		$hover_styles = array(
 			'fontFormatBold'      => $instance['data']['fontFormatBoldHover'],
@@ -105,5 +127,4 @@ class Link extends Element_Base {
 
 		return $css;
 	}
-
 }

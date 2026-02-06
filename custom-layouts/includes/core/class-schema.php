@@ -1,4 +1,11 @@
 <?php
+/**
+ * Schema definition class
+ *
+ * @package    Custom_Layouts
+ * @since      1.0.0
+ */
+
 namespace Custom_Layouts\Core;
 
 /**
@@ -22,6 +29,7 @@ class Schema {
 	 * @since    1.0.0
 	 * @access   private
 	 * @var      string    $plugin_name    The ID of this plugin.
+	 * @phpstan-ignore property.onlyWritten
 	 */
 	private $plugin_name;
 
@@ -31,9 +39,17 @@ class Schema {
 	 * @since    1.0.0
 	 * @access   private
 	 * @var      string    $version    The current version of this plugin.
+	 * @phpstan-ignore property.onlyWritten
 	 */
 	private $version;
 
+	/**
+	 * Initialize the class and set its properties.
+	 *
+	 * @since 1.0.0
+	 * @param string $plugin_name The name of this plugin.
+	 * @param string $version The version of this plugin.
+	 */
 	public function __construct( $plugin_name, $version ) {
 
 		$this->plugin_name = $plugin_name;
@@ -65,7 +81,7 @@ class Schema {
 			// 'show_in_rest'       => true,
 		);
 
-		// Custom Layouts - Layouts
+		// Custom Layouts - Layouts.
 		$labels                   = array(
 			'name'               => __( 'Layouts', 'custom-layouts' ),
 			// 'menu_name'                   =>  __( 'Custom Layouts', 'custom-layouts' ),
@@ -83,7 +99,7 @@ class Schema {
 		$post_type_args['labels'] = $labels;
 		register_post_type( 'cl-layout', $post_type_args );
 
-		// Custom Layouts - Posts Templates
+		// Custom Layouts - Posts Templates.
 		$labels = array(
 			'name'               => __( 'Templates', 'custom-layouts' ),
 			// 'menu_name'                   =>  __( 'Custom Layouts', 'custom-layouts' ),

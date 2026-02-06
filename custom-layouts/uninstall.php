@@ -1,7 +1,6 @@
 <?php
-
 /**
- *  Uninstall functions, remove S&F data if the option is set
+ * Uninstall functions, remove S&F data if the option is set.
  *
  * @link       http://codeamp.com
  * @since      1.0.0

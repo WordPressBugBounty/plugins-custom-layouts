@@ -38,7 +38,7 @@ class Setting {
 	private $options = array();
 
 	/**
-	 * Initialize the class
+	 * Initialize the class.
 	 *
 	 * @since    1.0.0
 	 * @param    array $args       Initial data for this setting.
@@ -60,8 +60,8 @@ class Setting {
 	 * and ordered assoc array.
 	 *
 	 * @since    1.0.0
-	 * @param    array $options_arr       Initial options.
-	 * @param    array $to_target         Where to add the options (to support nested options).
+	 * @param    mixed $options_arr       Initial options.
+	 * @param    mixed $to_target         Where to add the options (to support nested options).
 	 */
 	private function add_options_from_array( $options_arr, &$to_target ) {
 
@@ -91,10 +91,11 @@ class Setting {
 	}
 
 	/**
-	 * Checks whether an option is valid option (not a group)
+	 * Checks whether an option is valid option (not a group).
 	 *
 	 * @since    1.0.0
 	 * @param    array $option            The option.
+	 * @return   bool                     True if valid, false otherwise.
 	 */
 	private function is_valid_option( $option ) {
 		if ( ( ! isset( $option['value'] ) ) || ( ! isset( $option['label'] ) ) ) {
@@ -108,10 +109,11 @@ class Setting {
 	}
 
 	/**
-	 * Checks if an option is valid option group (based on its properties)
+	 * Checks if an option is valid option group (based on its properties).
 	 *
 	 * @since    1.0.0
 	 * @param    array $option            The option.
+	 * @return   bool                     True if valid group, false otherwise.
 	 */
 	private function is_valid_option_group( $option ) {
 		if ( ( ! isset( $option['name'] ) ) || ( ! isset( $option['label'] ) ) || ( ! isset( $option['options'] ) ) ) {
@@ -130,6 +132,7 @@ class Setting {
 	 *
 	 * @since    1.0.0
 	 * @param    array $option            The option.
+	 * @return   string|int               The option key or -1.
 	 */
 	private function get_option_key( $option ) {
 		if ( $this->is_valid_option( $option ) ) {
@@ -141,24 +144,26 @@ class Setting {
 	}
 
 	/**
-	 * Return the data
+	 * Return the data.
 	 *
 	 * @since    1.0.0
+	 * @return   array The setting data.
 	 */
 	public function get_data() {
 		return $this->data;
 	}
 	/**
-	 * Return the data
+	 * Return the default value.
 	 *
 	 * @since    1.0.0
+	 * @return   mixed The default value.
 	 */
 	public function get_default() {
 		return isset( $this->data['default'] ) ? $this->data['default'] : '';
 	}
 
 	/**
-	 * Map the args back into the data object
+	 * Map the args back into the data object.
 	 *
 	 * @since    1.0.0
 	 * @param    array $args            The args.
@@ -168,9 +173,10 @@ class Setting {
 	}
 
 	/**
-	 * Get the internal data + options (as numerical array) for use in JS
+	 * Get the internal data + options (as numerical array) for use in JS.
 	 *
 	 * @since    1.0.0
+	 * @return   array The setting as an array.
 	 */
 	public function get_array() {
 
@@ -182,14 +188,15 @@ class Setting {
 	}
 
 	/**
-	 * Returns options (as numerical array) for use in JS
+	 * Returns options (as numerical array) for use in JS.
 	 *
 	 * @since    1.0.0
 	 *
 	 * @param    array $options            The assoc array of options.
+	 * @return   array                     The options as a numerical array.
 	 */
 	public function get_options_array( $options ) {
-		// TODO - remember to add in "default" options to our select2 fields as we've removed them from config
+		// TODO - remember to add in "default" options to our select2 fields as we've removed them from config.
 
 		$options_arr = array();
 		foreach ( $options as $key => $option ) {
@@ -204,7 +211,7 @@ class Setting {
 		return $options_arr;
 	}
 	/**
-	 * Returns options (as numerical array) for use in JS
+	 * Add an option to the setting.
 	 *
 	 * @since    1.0.0
 	 *
@@ -260,12 +267,13 @@ class Setting {
 		}
 	}
 	/**
-	 * Returns an individual option
+	 * Returns an individual option.
 	 *
 	 * @since    1.0.0
 	 *
-	 * @param    array $option_name        The option name.
-	 * @param    array $args               Add a parent to look in.
+	 * @param    string $option_name        The option name.
+	 * @param    array  $args               Add a parent to look in.
+	 * @return   array|false                The option data or false if not found.
 	 */
 	public function get_option( $option_name, $args ) {
 
@@ -281,7 +289,7 @@ class Setting {
 		}
 
 		if ( ! isset( $options[ $option_name ] ) ) {
-			_doing_it_wrong( __METHOD__, sprintf( esc_html__( 'The option "%1$s" does not exist', 'custom-layouts' ), $option_name ), '1.0.0' );
+			_doing_it_wrong( __METHOD__, sprintf( esc_html__( 'The option "%1$s" does not exist', 'custom-layouts' ), esc_html( $option_name ) ), '1.0.0' );
 			return false;
 		}
 
@@ -289,26 +297,26 @@ class Setting {
 	}
 
 	/**
-	 * Returns the options array based on the `parent` argument
+	 * Returns the options array based on the `parent` argument.
 	 *
 	 * @since    1.0.0
 	 *
-	 * @param    string $parent             The parent name.
+	 * @param    string|int $parent_name             The parent name or -1 for root options.
 	 *
-	 * @return   array $options            Returns the options array that belongs to the parent, by reference so it can be modified
+	 * @return   array|false $options            Returns the options array that belongs to the parent, by reference so it can be modified.
 	 */
-	public function &get_options( $parent = -1 ) {
-		if ( -1 === $parent ) {
+	public function &get_options( $parent_name = -1 ) {
+		if ( -1 === $parent_name ) {
 			$options = &$this->options;
-		} elseif ( ( $parent ) && ( isset( $this->options[ $parent ] ) ) ) {
-			if ( isset( $this->options[ $parent ]['options'] ) ) {
-				$options = &$this->options[ $parent ]['options'];
+		} elseif ( ( $parent_name ) && ( isset( $this->options[ $parent_name ] ) ) ) {
+			if ( isset( $this->options[ $parent_name ]['options'] ) ) {
+				$options = &$this->options[ $parent_name ]['options'];
 			} else {
-				_doing_it_wrong( __METHOD__, sprintf( esc_html__( 'The parent "%1$s" does not have children', 'custom-layouts' ), $parent ), '1.0.0' );
+				_doing_it_wrong( __METHOD__, sprintf( esc_html__( 'The parent "%1$s" does not have children', 'custom-layouts' ), esc_html( $parent_name ) ), '1.0.0' );
 				return false;
 			}
 		} else {
-			_doing_it_wrong( __METHOD__, sprintf( esc_html__( 'The parent "%1$s" does not exist', 'custom-layouts' ), $parent ), '1.0.0' );
+			_doing_it_wrong( __METHOD__, sprintf( esc_html__( 'The parent "%1$s" does not exist', 'custom-layouts' ), esc_html( $parent_name ) ), '1.0.0' );
 			return false;
 		}
 
@@ -316,13 +324,14 @@ class Setting {
 	}
 
 	/**
-	 * Updates a specific option
+	 * Updates a specific option.
 	 *
 	 * @since    1.0.0
 	 *
 	 * @param    string $option_name             The option name.
-	 * @param    string $option_data             The new option data.
-	 * @param    string $args                    Additional args.
+	 * @param    array  $option_data             The new option data.
+	 * @param    array  $args                    Additional args.
+	 * @return   bool|void                       False if option doesn't exist.
 	 */
 	public function update_option( $option_name, $option_data, $args = array() ) {
 
@@ -337,8 +346,8 @@ class Setting {
 			return false;
 		}
 
-		// Remove value + name from update data to prevent array index issues
-		// - essentially, these cannot be modified.
+		// Remove value + name from update data to prevent array index issues.
+		// Essentially, these cannot be modified.
 		if ( isset( $option_data['value'] ) ) {
 			unset( $option_data['value'] );
 		}
@@ -352,6 +361,5 @@ class Setting {
 
 		// Update the option.
 		$options[ $option_name ] = $option;
-
 	}
 }

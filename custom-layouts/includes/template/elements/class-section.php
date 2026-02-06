@@ -23,9 +23,17 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Section extends Element_Base {
 
-	private $post;
-
-	public function render( $post, $instance, $template, $children, $return = false ) {
+	/**
+	 * Render the section element.
+	 *
+	 * @param \WP_Post $post Post object.
+	 * @param array    $instance Element instance data.
+	 * @param array    $template Template data.
+	 * @param mixed    $children Child elements.
+	 * @param bool     $return_output Whether to return the output instead of echoing.
+	 * @return string|void The output if $return_output is true, void otherwise.
+	 */
+	public function render( $post, $instance, $template, $children, $return_output = false ) {
 
 		$instance_data = $instance['data'];
 		$element_type  = $instance['elementId'];
@@ -39,16 +47,21 @@ class Section extends Element_Base {
 		$output = $this->wrap_container( $output, $instance );
 		$output = parent::run_post_render_hooks( $output, $element_type, $instance_data, $post, $template );
 
-		if ( $return ) {
+		if ( $return_output ) {
 			return $output;
 		}
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Output is pre-escaped by parent::run_post_render_hooks()
 		echo $output;
 	}
 
+	/**
+	 * Get section data for a post.
+	 *
+	 * @param \WP_Post $post Post object.
+	 * @return string The post content with all tags stripped.
+	 */
 	public function get_data( $post ) {
 		$post_content = wp_strip_all_tags( $post->post_content );
 		return $post_content;
 	}
-
-
 }

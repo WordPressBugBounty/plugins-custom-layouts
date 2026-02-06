@@ -27,52 +27,119 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Controller {
 
+	/**
+	 * The layout ID.
+	 *
+	 * @var int
+	 */
 	private $id;
-	protected $name         = '';
-	protected $settings     = array();
+
+	/**
+	 * The layout name.
+	 *
+	 * @var string
+	 */
+	protected $name = '';
+
+	/**
+	 * Processed layout settings.
+	 *
+	 * @var array
+	 */
+	protected $settings = array();
+
+	/**
+	 * Raw layout settings from the database.
+	 *
+	 * @var array
+	 */
 	protected $settings_raw = array();
-	protected $input_type   = '';
-	protected $use_cache    = true;
-	protected $query_data   = array();
 
+	/**
+	 * The input type for the layout.
+	 *
+	 * @var string
+	 */
+	protected $input_type = '';
+
+	/**
+	 * Whether to use caching for this layout.
+	 *
+	 * @var bool
+	 */
+	protected $use_cache = true;
+
+	/**
+	 * Query data for the layout.
+	 *
+	 * @var array
+	 */
+	protected $query_data = array();
+
+	/**
+	 * Whether the layout has been initialized.
+	 *
+	 * @var bool
+	 */
 	private $has_init = false;
-	private $values;
 
+	/**
+	 * Layout values array.
+	 *
+	 * @var array
+	 */
+	private $values = array();
+
+	/**
+	 * HTML attributes for the layout container.
+	 *
+	 * @var array
+	 */
 	private $attributes = array();
 
-	// TODO - refactor the cache parameter
+	/**
+	 * Constructor for the layout controller.
+	 *
+	 * TODO - refactor the cache parameter.
+	 *
+	 * @since 1.0.0
+	 * @param mixed  $args  Either a layout ID (int) or an array of settings.
+	 * @param string $cache Whether to use caching ('yes' or 'no').
+	 */
 	public function __construct( $args, $cache = 'yes' ) {
 		$this->init( $args, $cache );
 	}
 
 	/**
-	 * Init...
+	 * Initialize the layout controller with settings and data.
 	 *
-	 * @since    1.0.0
+	 * @since 1.0.0
+	 * @param mixed  $args  Either a layout ID (int) or an array of settings.
+	 * @param string $cache Whether to use caching ('yes' or 'no').
 	 */
 	private function init( $args, $cache = 'yes' ) {
 
 		if ( is_scalar( $args ) ) {
-			// then it is an ID for a template, load the template data
+			// Then it is an ID for a template, load the template data.
 			$this->id      = absint( $args );
 			$this->id      = apply_filters( 'custom-layouts/layout/id', $this->id );
 			$settings_args = Settings::get_layout_data( $this->id );
 
 		} else {
-			// then it is an array of settings passed (usually from a block or shortcode)
+			// Then it is an array of settings passed (usually from a block or shortcode).
 			$this->id      = -1;
 			$settings_args = $args;
 		}
 		$settings_args = $this->deprecated( $settings_args );
 
-		// TODO - get defaults from settings - already
+		// TODO - get defaults from settings - already.
 		$default_settings = Settings::get_settings_defaults( array( 'layout', 'query' ) );
 
-		// defaults
+		// Defaults.
 		$default_settings['container_class'] = '';
 
 		/*
-		 if( ! isset( $default_settings['post_type'] ) ) {
+		if( ! isset( $default_settings['post_type'] ) ) {
 			// TODO - remove - normalise this between blocks and our own UI
 			$default_settings['post_type'] = array( 'post' );
 		} */
@@ -90,26 +157,28 @@ class Controller {
 		$this->has_init = true;
 
 		// Attributes needs has_init to be true so we can use `get_values`.
-		$this->prepare_settings();
+		$this->prepare_settings(); // @phpstan-ignore method.resultUnused
 		$this->set_attributes();
 
 		// Add user defined custom classes.
 		$this->add_class( $this->settings['add_class'] );
 	}
 
-	/*
-	 * Performs action once the settings have been stored
-	 * locally
-	 * since 1.4.0
+	/**
+	 * Performs action once the settings have been stored locally.
+	 *
+	 * @since 1.4.0
 	 */
 	private function prepare_settings() {
-		if ( isset( $this->settings['use_search_filter'] ) && isset( $this->settings['search_filter_id'] ) ) {
-			if ( $this->settings['use_search_filter'] === 'yes' ) {
-				$results_class_name = 'search-filter-results-' . absint( $this->settings['search_filter_id'] );
-				$this->add_container_class( $results_class_name );
-			}
-		}
 	}
+
+	/**
+	 * Handle deprecated settings and migrate them to new format.
+	 *
+	 * @since 1.0.0
+	 * @param array $settings_args The settings array to process.
+	 * @return array The processed settings array.
+	 */
 	private function deprecated( $settings_args ) {
 
 		if ( isset( $settings_args['columns'] ) ) {
@@ -118,9 +187,14 @@ class Controller {
 		return $settings_args;
 	}
 
-	/*
-	 goes through the settings, if unlocked, uses its own setting, if locked, walks through
-	 * other settings until it finds something unlocked and copies that value
+	/**
+	 * Goes through the settings, if unlocked, uses its own setting, if locked, walks through
+	 * other settings until it finds something unlocked and copies that value.
+	 *
+	 * @since 1.0.0
+	 * @param string $device_size    The device size (xsmall, small, medium, large).
+	 * @param string $setting_prefix The prefix for the setting to retrieve.
+	 * @return string The attribute value for the device type.
 	 */
 	private function get_device_type_attribute_value( $device_size, $setting_prefix ) {
 
@@ -133,7 +207,7 @@ class Controller {
 			return $this->settings[ $active_value_index ];
 		}
 
-		// find the current device in the order
+		// Find the current device in the order.
 		$active_device_index = array_search( $device_size, $device_order, true );
 
 		if ( $active_device_index === false ) {
@@ -148,7 +222,7 @@ class Controller {
 			$value_index  = $setting_prefix . '_' . $device_type;
 			$locked_index = $setting_prefix . '_' . $device_type . '_locked';
 
-			// don't check the last item to see if it was locked - it can't be
+			// Don't check the last item to see if it was locked - it can't be.
 			if ( $device_index === $device_count - 1 ) {
 				return $this->settings[ $value_index ];
 			}
@@ -158,18 +232,23 @@ class Controller {
 				$is_device_locked = false;
 			}
 			if ( ! $is_device_locked ) {
-				// then we want this value
+				// Then we want this value.
 				return $this->settings[ $value_index ];
 			}
 		}
+		// @phpstan-ignore deadCode.unreachable
 		return '';
-
 	}
 
+	/**
+	 * Set CSS classes for the layout based on settings.
+	 *
+	 * @since 1.0.0
+	 */
 	private function set_classes() {
 
 		$modifier_class = '';
-		// TODO - check all columns
+		// TODO - check all columns.
 		if ( absint( $this->settings['columns_medium'] ) > 1 ) {
 			if ( 'yes' === $this->settings['use_masonry'] ) {
 				$modifier_class = 'cl-layout--masonry';
@@ -185,7 +264,7 @@ class Controller {
 
 		$this->add_class( $modifier_class );
 
-		// TODO - frontend classes don't respect responsive locked status (don't add them if they are locked)
+		// TODO - frontend classes don't respect responsive locked status (don't add them if they are locked).
 		$column_classes_arr = array();
 		array_push( $column_classes_arr, 'cl-layout--col-l-' . $this->settings['columns_large'] );
 
@@ -193,13 +272,15 @@ class Controller {
 		array_push( $column_classes_arr, 'cl-layout--col-s-' . $this->get_device_type_attribute_value( 'small', 'columns' ) );
 		array_push( $column_classes_arr, 'cl-layout--col-xs-' . $this->get_device_type_attribute_value( 'xsmall', 'columns' ) );
 
-		$column_classes = '';
-		if ( count( $column_classes_arr ) > 0 ) {
-			$column_classes = ' ' . implode( ' ', $column_classes_arr );
-		}
+		$column_classes = ' ' . implode( ' ', $column_classes_arr );
 		$this->add_class( $column_classes );
-
 	}
+
+	/**
+	 * Set the HTML attributes for the layout element.
+	 *
+	 * @since 1.0.0
+	 */
 	private function set_attributes() {
 
 		$base_class = 'cl-layout';
@@ -213,15 +294,21 @@ class Controller {
 
 		$this->attributes['class'] = $base_class . $type_class . $id_class;
 
-		// TODO
+		// TODO.
 		/*
 		if ( 1 === absint( $this->settings['columns'] ) ) {
-			$this->attributes['role'] = 'list'; // TODO - allow different types of roles depening on settings
+			$this->attributes['role'] = 'list'; // TODO - allow different types of roles depening on settings.
 		} else {
-			$this->attributes['role'] = 'grid'; // TODO - allow different types of roles depening on settings
+			$this->attributes['role'] = 'grid'; // TODO - allow different types of roles depening on settings.
 		}*/
 	}
 
+	/**
+	 * Check if the layout controller has been initialized.
+	 *
+	 * @since 1.0.0
+	 * @return bool True if initialized, false otherwise.
+	 */
 	protected function has_init() {
 		if ( ! $this->has_init ) {
 			_doing_it_wrong( __METHOD__, esc_html__( 'If you are extending the Layout constructor, make sure to call `parent::_construct()` at the top of the child constructor.', 'custom-layouts' ), '1.0.0' );
@@ -230,6 +317,12 @@ class Controller {
 		return true;
 	}
 
+	/**
+	 * Add CSS class(es) to the layout element.
+	 *
+	 * @since 1.0.0
+	 * @param string $class_names The class name(s) to add.
+	 */
 	public function add_class( $class_names ) {
 
 		if ( ! $this->has_init() ) {
@@ -242,6 +335,13 @@ class Controller {
 
 		$this->attributes['class'] .= ' ' . $class_names;
 	}
+
+	/**
+	 * Add CSS class(es) to the layout container element.
+	 *
+	 * @since 1.0.0
+	 * @param string $class_names The class name(s) to add.
+	 */
 	public function add_container_class( $class_names ) {
 
 		if ( ! $this->has_init() ) {
@@ -254,6 +354,14 @@ class Controller {
 
 		$this->settings['container_class'] .= ' ' . $class_names;
 	}
+
+	/**
+	 * Add an HTML attribute to the layout element.
+	 *
+	 * @since 1.0.0
+	 * @param string $attribute_name  The attribute name.
+	 * @param string $attribute_value The attribute value.
+	 */
 	protected function add_attribute( $attribute_name, $attribute_value ) {
 
 		if ( ! $this->has_init() ) {
@@ -263,15 +371,26 @@ class Controller {
 		$this->attributes[ $attribute_name ] = $attribute_value;
 	}
 
+	/**
+	 * Get all HTML attributes for the layout element.
+	 *
+	 * @since 1.0.0
+	 * @return array The attributes array.
+	 */
 	protected function get_attributes() {
 
 		if ( ! $this->has_init() ) {
 			return array();
 		}
 		return $this->attributes;
-
 	}
 
+	/**
+	 * Get the values array.
+	 *
+	 * @since 1.0.0
+	 * @return array|void The values array or void if not initialized.
+	 */
 	protected function get_values() {
 
 		if ( ! $this->has_init() ) {
@@ -281,11 +400,13 @@ class Controller {
 	}
 
 	/**
-	 * Display the HTML output of the layout
+	 * Display the HTML output of the layout.
 	 *
-	 * @since    1.0.0
+	 * @since 1.0.0
+	 * @param bool $return_output Whether to return the output instead of echoing it.
+	 * @return string|void The HTML output if $return_output is true, void otherwise.
 	 */
-	public function render( $return = false ) {
+	public function render( $return_output = false ) {
 
 		if ( ! $this->has_init() ) {
 			return '';
@@ -302,15 +423,17 @@ class Controller {
 		$this->set_classes();
 
 		ob_start();
-		// generate inline CSS if we couldn't create a CSS file
+		// Generate inline CSS if we couldn't create a CSS file.
 		if ( 'inline' === CSS_Loader::get_mode() ) {
 			echo '<style>';
 			$template_id = $this->settings['template_id'];
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSS output from CSS_Loader is safe
 			echo CSS_Loader::get_layout_css();
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSS output from CSS_Loader is safe
 			echo CSS_Loader::get_template_css( $template_id );
 			echo '</style>';
 		}
-		// if item spacing was done via a block (dynamic) then we need some inline CSS to set it:
+		// If item spacing was done via a block (dynamic) then we need some inline CSS to set it.
 		// We need to render old blocks using item_spacing with the new grid_gap and margin setttings.
 		if ( isset( $this->settings['item_spacing'] ) ) {
 			// Convert the old item spacing to grid gap measurements and margin.
@@ -340,13 +463,12 @@ class Controller {
 
 		// Add the gap.
 		ob_start();
-		?>--cl-layout-gap-c: <?php echo $column_gap; ?>;--cl-layout-gap-r: <?php echo $row_gap; ?>;
+		?>--cl-layout-gap-c: <?php echo esc_attr( $column_gap ); ?>;--cl-layout-gap-r: <?php echo esc_attr( $row_gap ); ?>;
 		<?php
 		$css = ob_get_clean();
 		$this->add_attribute( 'style', $css );
 
-		// Figure out margin + padding
-
+		// Figure out margin + padding.
 		$container_css = '';
 
 		if ( isset( $this->settings['padding_size'] ) && $this->settings['padding_size'] !== '' ) {
@@ -364,16 +486,20 @@ class Controller {
 		}
 
 		$container_class = $this->settings['container_class'] !== '' ? ' ' . $this->settings['container_class'] : '';
+		$container_class = apply_filters( 'custom-layouts/layout/container_class', $container_class, $this->settings );
 		echo '<div class="cl-layout-container' . esc_attr( $container_class ) . '" style="' . esc_attr( $container_css ) . '">';
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Output is escaped by Util::get_attributes_html()
 		echo '<div ' . Util::get_attributes_html( $this->get_attributes() ) . '>';
 		if ( 'yes' === $this->settings['use_masonry'] ) {
 			echo '<div class="cl-layout__masonry-content">';
 		}
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Output is pre-escaped in build() method
 		echo $this->build( $this->settings );
 		if ( 'yes' === $this->settings['use_masonry'] ) {
 			echo '</div>';
 		}
 		echo '</div>';
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Output is pre-escaped in build_pagination() method
 		echo $this->build_pagination( $this->settings );
 		echo '</div>';
 
@@ -382,27 +508,40 @@ class Controller {
 		// Modify output html.
 		$output = apply_filters( 'custom-layouts/layout/render_output', $output, $this->name, $this->settings );
 
-		if ( ! $return ) {
+		if ( ! $return_output ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Output is pre-escaped and filtered
 			echo $output;
 		}
 
 		// Trigger action when finished.
 		do_action( 'custom-layouts/layout/after_render', $this->settings, $this->name );
 
-		if ( $return ) {
+		if ( $return_output ) {
 			return $output;
 		}
 	}
 
+	/**
+	 * Get the input type of the layout.
+	 *
+	 * @since 1.0.0
+	 * @return string The input type.
+	 */
 	public function get_input_type() {
 
 		if ( ! $this->has_init() ) {
 			return '';
 		}
 		return $this->settings['input_type'];
-
 	}
 
+	/**
+	 * Get a specific setting value by name.
+	 *
+	 * @since 1.0.0
+	 * @param string|bool $setting_name The setting name to retrieve.
+	 * @return mixed|bool The setting value or false if not found.
+	 */
 	public function get_setting( $setting_name = false ) {
 
 		if ( ! $this->has_init() ) {
@@ -422,9 +561,11 @@ class Controller {
 
 
 	/**
-	 * The main function that constructs the main part of the layout,
+	 * The main function that constructs the main part of the layout.
 	 *
-	 * @since    1.0.0
+	 * @since 1.0.0
+	 * @param array $settings The layout settings.
+	 * @return string The HTML output of the layout.
 	 */
 	public function build( $settings ) {
 		if ( ! $this->has_init() ) {
@@ -438,7 +579,7 @@ class Controller {
 		if ( 'grid' === $this->settings['display_mode'] ) {
 
 			if ( ! isset( $this->settings['template_id'] ) ) {
-				return;
+				return '';
 			}
 
 			$template_id = absint( $this->settings['template_id'] );
@@ -449,6 +590,7 @@ class Controller {
 						$attributes = array(
 							'class' => 'cl-layout__item cl-layout__item--id-' . absint( $result_id ),
 						);
+						// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Output is escaped by Util::get_attributes_html()
 						echo '<div ' . Util::get_attributes_html( $attributes ) . '>';
 
 						$template_controller = new Template_Controller( $template_id );
@@ -465,8 +607,15 @@ class Controller {
 
 		$output = ob_get_clean();
 		return $output;
-
 	}
+
+	/**
+	 * Build the pagination HTML for the layout.
+	 *
+	 * @since 1.0.0
+	 * @param array $settings The layout settings.
+	 * @return string The HTML output of the pagination.
+	 */
 	public function build_pagination( $settings ) {
 
 		if ( ! $this->has_init() ) {
@@ -480,9 +629,10 @@ class Controller {
 			$current_page = $query_data['current_page'];
 			$big          = 9999999;
 			echo '<div class="cl-pagination">';
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- paginate_links() returns escaped HTML
 			echo paginate_links(
 				array(
-					'base'    => str_replace( $big, '%#%', esc_url( get_pagenum_link( $big ) ) ),
+					'base'    => str_replace( (string) $big, '%#%', esc_url( get_pagenum_link( $big ) ) ),
 					'format'  => '?paged=%#%',
 					'current' => $current_page,
 					'total'   => $query_data['total_pages'],
@@ -495,10 +645,17 @@ class Controller {
 		return $output;
 	}
 
+	/**
+	 * Get the transient name for caching query results.
+	 *
+	 * @since 1.0.0
+	 * @param array $query_args The query arguments.
+	 * @return string The transient name.
+	 */
 	protected function get_transient_name( $query_args ) {
 		$transient_name = 'layout_query_' . wp_json_encode( $query_args );
 
-		// TODO
+		// TODO.
 		/*
 		if ( 'rand' === $this->query_args['orderby'] ) {
 			// When using rand, we'll cache a number of random queries and pull those to avoid querying rand on each page load.
@@ -508,12 +665,20 @@ class Controller {
 
 		return $transient_name;
 	}
+
+	/**
+	 * Run the WP_Query and return query data.
+	 *
+	 * @since 1.0.0
+	 * @param array $extra_args Extra query arguments to merge.
+	 * @return array The query data including IDs, pagination info, etc.
+	 */
 	protected function run_query( $extra_args = array() ) {
 
 		$paged = 1;
 
 		if ( $this->settings['pagination_type'] !== 'none' ) {
-			// get paged
+			// Get paged.
 			if ( is_front_page() ) {
 				$paged = ( get_query_var( 'page' ) ) ? get_query_var( 'page' ) : 1;
 			} else {
@@ -521,8 +686,8 @@ class Controller {
 			}
 		}
 
-		// legacy - we used to ahve a single `post_type` field, and replaced it with a `post_types` field
-		// this covers users who have upgrade but not resaved their settings / layouts / blocks
+		// Legacy - we used to have a single `post_type` field, and replaced it with a `post_types` field.
+		// This covers users who have upgraded but not resaved their settings / layouts / blocks.
 		$post_types = array();
 		if ( isset( $this->settings['post_type'] ) ) {
 			array_push( $post_types, $this->settings['post_type'] );
@@ -569,7 +734,7 @@ class Controller {
 			}
 		}
 
-		// calculate offset taking into consideration pagination
+		// Calculate offset taking into consideration pagination.
 		if ( isset( $this->settings['offset'] ) ) {
 			$offset = absint( $this->settings['offset'] );
 			if ( 0 !== $offset ) {
@@ -595,34 +760,36 @@ class Controller {
 			$query_args = wp_parse_args( $extra_args, $query_args );
 		}
 
-		$query_args = apply_filters( 'custom-layouts/layout/query_args', $query_args, $this->id );
+		$this->use_cache = apply_filters( 'custom-layouts/layout/use_cache', $this->use_cache, $this->id, $this->settings, $query_args );
+		$query_args      = apply_filters( 'custom-layouts/layout/query_args', $query_args, $this->id, $this->settings );
 
+		// @phpstan-ignore if.alwaysFalse (debug constant can be changed)
 		if ( CUSTOM_LAYOUTS_DEBUG ) {
 			$this->use_cache = false;
 		}
 
-		// force post_type to be array (just for consistency later)
+		// Force post_type to be array (just for consistency later).
 		/*
-		 if ( is_scalar( $query_args[ 'post_type' ] ) ) {
+		if ( is_scalar( $query_args[ 'post_type' ] ) ) {
 			$query_args[ 'post_type' ] = array( $query_args[ 'post_type' ] );
 		} */
 
 		if ( $this->use_cache ) {
-			// find out whether a post type we are using, has recently had any modifications
+			// Find out whether a post type we are using, has recently had any modifications.
 			$post_types_updated_option_key = 'cl_post_types_updated';
 			$post_types_updated            = get_option( $post_types_updated_option_key );
 			if ( ! $post_types_updated ) {
 				$post_types_updated = array();
 			}
 
-			// see if the post types updated are in the current query
+			// See if the post types updated are in the current query.
 			$reset_transients = count( array_intersect( $post_types_updated, $query_args['post_type'] ) ) >= 1 ? true : false;
 
-			// if we are querying a post type that has had a modification, then clear all query transients
+			// If we are querying a post type that has had a modification, then clear all query transients.
 			$transient_name = $this->get_transient_name( $query_args );
 
 			if ( $reset_transients ) {
-				// clear query transients
+				// Clear query transients.
 				Cache::purge_all_query_transients();
 				update_option( $post_types_updated_option_key, array(), false );
 
@@ -634,8 +801,7 @@ class Controller {
 			}
 		}
 		$query = new \WP_Query( $query_args );
-		// need to loop through and return only IDs
-
+		// Need to loop through and return only IDs.
 		$query_data = array(
 			'ids'            => $query->posts,
 			'current_page'   => $query->query_vars['paged'],
@@ -645,22 +811,28 @@ class Controller {
 		);
 
 		if ( $this->use_cache ) {
-			// we need to store other query info in transient, like #no results, #current_page?
+			// We need to store other query info in transient, like #no results, #current_page.
 			Cache::set_query_transient( $transient_name, $query_data );
 		}
 
 		return $query_data;
 	}
 
-	// run the query, if extra args are passed, then don't store the result, just return it
+	/**
+	 * Run the query, if extra args are passed, then don't store the result, just return it.
+	 *
+	 * @since 1.0.0
+	 * @param array $extra_args Extra query arguments to merge.
+	 * @return array The query data.
+	 */
 	public function get_query( $extra_args = array() ) {
 
-		// if its dynamic (extra_args passed) then run and return the query
+		// If its dynamic (extra_args passed) then run and return the query.
 		if ( ! empty( $extra_args ) ) {
 			return $this->run_query( $extra_args );
 		}
 
-		// otherwise store the result and re-use as we know that will be likely
+		// Otherwise store the result and re-use as we know that will be likely.
 		if ( empty( $this->query_data ) ) {
 			$this->query_data = $this->run_query();
 		}
@@ -668,6 +840,13 @@ class Controller {
 		return $this->query_data;
 	}
 
+	/**
+	 * Parse taxonomy query from custom format to WP_Query tax_query format.
+	 *
+	 * @since 1.0.0
+	 * @param array $from_tax_query The taxonomy query in custom format.
+	 * @return array The parsed tax_query array for WP_Query.
+	 */
 	public static function parse_tax_query( $from_tax_query ) {
 		$to_tax_query = array();
 		if ( is_array( $from_tax_query ) ) {
@@ -693,19 +872,4 @@ class Controller {
 		}
 		return $to_tax_query;
 	}
-	/*
-	protected function get_data_source() {
-
-		$data_key = $this->get_data_key();
-
-		if ( ! $data_key ) {
-			return false;
-		}
-
-		if ( ! isset( $this->settings[ $data_key ] ) ){
-			return false;
-		}
-
-		return $this->settings[ $data_key ];
-	}*/
 }

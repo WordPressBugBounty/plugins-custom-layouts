@@ -27,9 +27,16 @@ class WordPress_Importer {
 	public static function init() {
 		add_action( 'import_end', 'Custom_Layouts\\Integrations\\WordPress_Importer::generate_css', 10 );
 	}
+
+	/**
+	 * Regenerate CSS files after import completes.
+	 *
+	 * @since 1.0.0
+	 * @return void
+	 */
 	public static function generate_css() {
-		// update the CSS file with the new templates
-		// TODO - only do this when our templates have been imported
+		// Update the CSS file with the new templates.
+		// TODO - only do this when our templates have been imported.
 		CSS_Loader::save_css();
 	}
 }

@@ -1,9 +1,8 @@
 <?php
-namespace Custom_Layouts\Core;
-
 /**
- * Define the internationalization functionality
+ * Internationalization file.
  *
+ * Define the internationalization functionality.
  * Loads and defines the internationalization files for this plugin
  * so that it is ready for translation.
  *
@@ -14,11 +13,21 @@ namespace Custom_Layouts\Core;
  * @subpackage Custom_Layouts/includes
  */
 
+namespace Custom_Layouts\Core;
+
 // If this file is called directly, abort.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Internationalization class.
+ *
+ * Handles loading the plugin text domain for translation.
+ *
+ * @since 1.0.0
+ */
+// phpcs:ignore WordPress.NamingConventions.ValidClassName.NotCamelCaps -- Class name preserved for backward compatibility.
 class i18n {
 
 
@@ -26,6 +35,7 @@ class i18n {
 	 * Load the plugin text domain for translation.
 	 *
 	 * @since    1.0.0
+	 * @return void
 	 */
 	public function load_plugin_textdomain() {
 
@@ -34,9 +44,5 @@ class i18n {
 			false,
 			dirname( dirname( plugin_basename( __FILE__ ) ) ) . '/languages/'
 		);
-
 	}
-
-
-
 }

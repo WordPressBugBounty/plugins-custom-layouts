@@ -1,1 +1,10 @@
-<?php // Silence is golden
+<?php
+/**
+ * Query directory index file.
+ *
+ * Prevents directory browsing.
+ *
+ * @package Custom_Layouts
+ */
+
+// Silence is golden.

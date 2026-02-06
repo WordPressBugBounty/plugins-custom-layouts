@@ -11,6 +11,7 @@
 
 namespace Custom_Layouts\Template\Elements;
 
+use Custom_Layouts\Core\Validation;
 use Custom_Layouts\Settings;
 use Custom_Layouts\Util;
 
@@ -24,9 +25,16 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Custom_Field extends Element_Base {
 
-	private $post;
-
-	public function render( $post, $instance, $template, $return = false ) {
+	/**
+	 * Render the custom field element.
+	 *
+	 * @param \WP_Post $post Post object.
+	 * @param array    $instance Element instance data.
+	 * @param array    $template Template data.
+	 * @param bool     $return_output Whether to return the output instead of echoing.
+	 * @return string|void The output if $return_output is true, void otherwise.
+	 */
+	public function render( $post, $instance, $template, $return_output = false ) {
 
 		$instance_data = $instance['data'];
 		$element_type  = $instance['elementId'];
@@ -69,7 +77,8 @@ class Custom_Field extends Element_Base {
 				if ( 'custom' === $date_format ) {
 					$date_formatted = $custom_date_format;
 				}
-				$formatted_content = wp_date( $date_formatted, strtotime( $value ) );
+
+				$formatted_content = wp_date( $date_formatted, strtotime( $value ), new \DateTimeZone( 'UTC' ) );
 
 			} elseif ( 'link' === $custom_field_type ) {
 				$url = $value;
@@ -97,22 +106,45 @@ class Custom_Field extends Element_Base {
 
 		$output = parent::run_post_render_hooks( $output, $element_type, $instance_data, $post, $template );
 
-		if ( $return ) {
+		if ( $return_output ) {
 			return $output;
 		}
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Output is pre-escaped by esc_html(), wp_kses_post() and parent::run_post_render_hooks()
 		echo $output;
 	}
 
+	/**
+	 * Get custom field data for a post.
+	 *
+	 * @param \WP_Post $post Post object.
+	 * @return string Empty string.
+	 */
 	public function get_data( $post ) {
 		return '';
 	}
-	// TODO - this is probably not i18n friendly
+
+	/**
+	 * Trim a string to a specific character limit.
+	 *
+	 * @param string $value String to trim.
+	 * @param int    $limit Character limit.
+	 * @param string $padding Padding to add at the end.
+	 * @return string Trimmed string.
+	 */
 	private function trim_string_to_chars( $value, $limit = 100, $padding = '&hellip;' ) {
 		// $limit = $limit - mb_strlen( $padding ); // Take into account $padding string into the limit
 		$valuelen = mb_strlen( $value );
 		return $limit < $valuelen ? mb_substr( $value, 0, mb_strrpos( $value, ' ', $limit - $valuelen ) ) . $padding : $value;
 	}
 
+	/**
+	 * Get CSS for the custom field element.
+	 *
+	 * @param array  $instance Element instance data.
+	 * @param string $template_class Template CSS class.
+	 * @param array  $template Template data.
+	 * @return string The generated CSS.
+	 */
 	public function get_css( $instance, $template_class, $template = array() ) {
 		$instance_class = $this->get_instance_class( $instance['id'] );
 		$html_tag       = isset( $instance['data']['htmlTag'] ) ? Validation::esc_html_tag( $instance['data']['htmlTag'] ) : 'div';
@@ -120,7 +152,7 @@ class Custom_Field extends Element_Base {
 
 		$custom_field_type = $instance['data']['customFieldType'];
 		if ( $custom_field_type !== 'link' ) {
-			// proceed as usual
+			// Proceed as usual.
 			$css                = '/* ' . $instance['elementId'] . ' */';
 			$container_selector = $template_class . ' ' . $html_tag . $instance_class;
 			$css               .= $this->create_container_css( $container_selector, $instance['data'] );
@@ -131,7 +163,7 @@ class Custom_Field extends Element_Base {
 				$css .= '}';
 			}
 		} else {
-			// otherwise just call the link css
+			// Otherwise just call the link css.
 			$new_instance                          = $instance;
 			$new_instance['data']['label']         = $instance['data']['linkLabel'];
 			$new_instance['data']['openNewWindow'] = $instance['data']['linkNewWindow'];
@@ -141,5 +173,4 @@ class Custom_Field extends Element_Base {
 
 		return $css;
 	}
-
 }

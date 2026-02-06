@@ -1,4 +1,11 @@
 <?php
+/**
+ * Query settings class
+ *
+ * @package    Custom_Layouts
+ * @since      1.0.0
+ */
+
 namespace Custom_Layouts\Settings;
 
 use Custom_Layouts\Settings;
@@ -7,13 +14,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// class that registers the options found in filters
+/**
+ * Class that registers the options found in filters.
+ */
 class Query {
 
+	/**
+	 * Initialize dependent settings.
+	 *
+	 * @return void
+	 */
 	public static function init_dependant_settings() {
-
 	}
 
+	/**
+	 * Get query settings data.
+	 *
+	 * @return array The query settings configuration array.
+	 */
 	public static function get_data() {
 
 		$settings_data = array(
@@ -24,38 +42,8 @@ class Query {
 				'multiple' => true,
 				'options'  => Settings::get_post_types(),
 				'default'  => array( 'post' ),
-				// 'dependsOnGlobal' => true,
-				// 'restRoute'       => '/options/query_post_types',
-				// 'withAjax'        => true,
-				/*
-				 'dataDependsOn'   => array(
-					'integration_type',
-					'taxonomy',
-					'post_type',
-				), */
 			),
-			/*
-			array(
-				'name'            => 'post_type',
-				'label'           =>__( 'Post Type', 'custom-layouts' ),
-				'type'            => 'Select2',
-				'multiple'        => false,
-				'options'         => Settings::get_post_types(),
-				'default'         => 'post',
-				//'dependsOnGlobal' => true,
-				//'restRoute'       => '/options/query_post_types',
-				//'withAjax'        => true,
 
-			),*/
-			/*
-			array(
-				'name'     => 'post_status',
-				'label'    => __( 'Post Status', 'custom-layouts' ),
-				'type'     => 'Select2',
-				'multiple' => true,
-				'options'  => Settings::get_post_stati(),
-				'default'  => array( 'publish' ),
-			),*/
 			array(
 				'name'    => 'posts_per_page',
 				'label'   => __( 'Posts Per Page', 'custom-layouts' ),
@@ -68,18 +56,9 @@ class Query {
 				'name'    => 'offset',
 				'label'   => __( 'Offset', 'custom-layouts' ),
 				'type'    => 'Number',
-				// 'min'     => '0',
-				// 'max'     => '100',
 				'default' => '0',
 			),
-			/*
-			array(
-				'name'    => 'exclude_ids',
-				'label'   => __( 'Exclude Posts', 'custom-layouts' ),
-				'type'    => 'Text',
-				'default' => '',
-				// 'options' => array( '' ),
-			),*/
+
 			array(
 				'name'    => 'order_by',
 				'key'     => 'order_by',
@@ -104,27 +83,6 @@ class Query {
 					),
 				),
 			),
-			/*
-			 array(
-				'name'    => 'sticky_posts',
-				'label'   => __( 'Sticky posts behaviour', 'custom-layouts' ),
-				'type'    => 'Select2',
-				'default' => 'default',
-				'options' => array(
-					array(
-						'value' => 'default',
-						'label' => 'Default',
-					),
-					array(
-						'value' => 'exclude',
-						'label' => 'Exclude',
-					),
-					array(
-						'value' => 'ignore',
-						'label' => 'Ignore',
-					),
-				),
-			),*/
 			array(
 				'name'    => 'ignore_sticky_posts',
 				'label'   => __( 'Ignore sticky posts', 'custom-layouts' ),
@@ -168,8 +126,6 @@ class Query {
 			),
 			array(
 				'name'    => 'filter_taxonomies',
-				// 'label'       => __('Exclude current post', 'custom-layouts'),
-				// 'description' => __('Exclude the current page / post / custom post type that the layout is displayed in.', 'custom-layouts'),
 				'type'    => 'Toggle',
 				'default' => 'no',
 				'options' => array(
@@ -205,27 +161,18 @@ class Query {
 			),
 			array(
 				'name' => 'taxonomy_query',
-				// 'label'       => __('Exclude current post', 'custom-layouts'),
-				// 'description' => __('Exclude the current page / post / custom post type that the layout is displayed in.', 'custom-layouts'),
 				'type' => 'array',
-				// 'default'   => 'yes',
-				/*
-				'options'       => array(
-					array(
-						'label' => __( 'Yes', 'custom-layouts' ),
-						'value' => 'yes',
-					),
-					array(
-						'label' => __( 'No', 'custom-layouts' ),
-						'value' => 'no',
-					),
-				),*/
 
 			),
 		);
 		return $settings_data;
 	}
 
+	/**
+	 * Get available order by options.
+	 *
+	 * @return array Array of order by options.
+	 */
 	private static function get_order_options() {
 		$options = array(
 			array(
@@ -249,4 +196,3 @@ class Query {
 		return $options;
 	}
 }
-

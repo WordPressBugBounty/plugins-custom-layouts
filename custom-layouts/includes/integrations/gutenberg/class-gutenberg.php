@@ -12,6 +12,7 @@ namespace Custom_Layouts\Integrations;
 use Custom_Layouts\Core\CSS_Loader;
 use Custom_Layouts\Settings;
 use Custom_Layouts\Util;
+use Custom_Layouts\Asset_Loader;
 
 
 use Custom_Layouts\Layout\Controller as Layout_Controller;
@@ -22,11 +23,12 @@ use Custom_Layouts\Template\Controller as Template_Controller;
 class Gutenberg {
 
 	/**
-	 * Init
+	 * Map of attributes from PHP <-> JS.
 	 *
 	 * @since    1.0.0
+	 * @var array $attributes_map Map of attributes from PHP <-> JS.
 	 */
-	static $attributes_map = array(
+	private static $attributes_map = array(
 		'useSavedLayout'      => 'use_saved_layout',
 		'layoutId'            => 'layout_id',
 
@@ -66,18 +68,23 @@ class Gutenberg {
 		'className'           => 'add_class',
 	);
 
+	/**
+	 * Initialize the Gutenberg integration.
+	 */
 	public static function init() {
 
 		if ( ! function_exists( 'register_block_type' ) ) {
 			// Gutenberg is not active.
 			return;
 		}
+
 		add_action( 'enqueue_block_editor_assets', 'Custom_Layouts\\Integrations\\Gutenberg::editor_assets', 10 );
 		add_action( 'init', 'Custom_Layouts\\Integrations\\Gutenberg::register_blocks', 10 );
-		add_action( 'block_editor_rest_api_preload_paths', '\\Custom_Layouts\\Integrations\\Gutenberg::preload_api_paths', 10 );
+		add_filter( 'block_editor_rest_api_preload_paths', '\\Custom_Layouts\\Integrations\\Gutenberg::preload_api_paths', 10 );
 	}
+
 	/**
-	 * Adds our commonly used (required on init) rest api paths for blocks
+	 * Adds our commonly used (required on init) rest api paths for blocks.
 	 *
 	 * @param array $preload_paths  Existing api paths.
 	 * @return array
@@ -96,22 +103,11 @@ class Gutenberg {
 		return $preload_paths;
 	}
 	/**
-	 * Register the stylesheets for the gutenberg editor.
+	 * Register the blocks for the block editor.
 	 *
 	 * @since    1.0.0
 	 */
 	public static function register_blocks() {
-
-		// Gutenberg.
-		global $pagenow;
-		$script_dependencies = array( 'wp-blocks', 'wp-i18n', 'wp-element', 'wp-editor' );
-		if ( $pagenow === 'site-editor.php' ) {
-			$script_dependencies[] = 'wp-edit-site';
-		} else {
-			$script_dependencies[] = 'wp-edit-post';
-		}
-
-		wp_register_script( 'custom-layouts-gutenberg', CUSTOM_LAYOUTS_URL . 'assets/js/gutenberg/custom-layouts.js', $script_dependencies, CUSTOM_LAYOUTS_VERSION, false );
 
 		$blocks_dir = realpath( plugin_dir_path( __FILE__ ) ) . DIRECTORY_SEPARATOR . 'blocks' . DIRECTORY_SEPARATOR;
 
@@ -141,40 +137,50 @@ class Gutenberg {
 		);
 	}
 
-	// Maps attibute names from PHP <-> JS
+	/**
+	 * Maps attibute names from PHP <-> JS.
+	 *
+	 * @param string $from The direction of the mapping.
+	 * @param array  $attributes_values The block attributes.
+	 * @return array The mapped attributes.
+	 */
 	public static function map_attributes( $from, $attributes_values ) {
 		$new_attributes = array();
 
 		$temp_attributes_map = self::$attributes_map;
-		// default is from js due the existing setup for self::$attributes_map
+		// Default is from js due the existing setup for self::$attributes_map.
 		if ( 'php' === $from ) {
 			$temp_attributes_map = array_flip( $temp_attributes_map );
 		}
 
 		foreach ( $attributes_values as $attribute_name => $attribute_value ) {
-
 			if ( isset( $temp_attributes_map[ $attribute_name ] ) ) {
 				$setting_name                    = $temp_attributes_map[ $attribute_name ];
 				$new_attributes[ $setting_name ] = $attribute_value;
-			} else {
-				// TODO - add debug notice
 			}
 		}
 
 		return $new_attributes;
 	}
-	public static function render_layout( $block_attributes, $content ) {
+	/**
+	 * Render the layout block.
+	 *
+	 * @param array $block_attributes The block attributes.
+	 * @return string The rendered layout.
+	 */
+	public static function render_layout( $block_attributes ) {
 
 		$args = array();
 		$args = self::map_attributes( 'js', $block_attributes );
-		// add support for align block attribute
+
+		// Add support for align block attribute.
 		if ( isset( $block_attributes['align'] ) ) {
 
 			$args['container_class'] = 'align' . $block_attributes['align'];
 		}
 
 		$layout_args = $args;
-		// check if we are loading a saved layout, or regular
+		// Check if we are loading a saved layout, or regular.
 		if ( isset( $layout_args['use_saved_layout'] ) && $layout_args['use_saved_layout'] === 'yes' ) {
 			$layout_id         = absint( $layout_args['layout_id'] );
 			$layout_controller = new Layout_Controller( $layout_id );
@@ -194,6 +200,15 @@ class Gutenberg {
 		return $output;
 	}
 
+	/**
+	 * Render the template block.
+	 *
+	 * @param array  $block_attributes The block attributes.
+	 * @param string $content The block content.
+	 * @param object $block The block object.
+	 *
+	 * @return string The rendered template.
+	 */
 	public static function render_template( $block_attributes, $content, $block ) {
 
 		$args = array();
@@ -201,7 +216,7 @@ class Gutenberg {
 
 		$post_ID = '';
 		if ( isset( $block_attributes['postId'] ) ) {
-			// use the setting for the post ID
+			// Use the setting for the post ID.
 			$post_ID = $block_attributes['postId'];
 		} elseif ( isset( $block->context['postId'] ) ) {
 			$post_ID = $block->context['postId'];
@@ -213,48 +228,54 @@ class Gutenberg {
 
 		// TODO - we don't have defaults for template block in our config files
 		// $defaults = Settings::get_settings_defaults( array( 'template' ) );
-		// $template_args = wp_parse_args( $args, $defaults );
+		// $template_args = wp_parse_args( $args, $defaults );.
 		if ( ! isset( $args['template_id'] ) ) {
 			$args['template_id'] = 0;
 		} elseif ( $args['template_id'] === 'default' ) {
 			$args['template_id'] = 0;
 		}
 
-		$template_controller = new Template_Controller( $args['template_id'] ); // can be "default"
+		$template_controller = new Template_Controller( $args['template_id'] ); // Can be "default".
 		$template_controller->render( $post_ID );
 
 		$output = ob_get_clean();
 		return $output;
 	}
 
+	/**
+	 * Enqueue the Gutenberg editor assets.
+	 */
 	public static function editor_assets() {
 
-		// This is loaded in Gutenberg, but also in our custom admin editor because we run:
+		// Bail if we're on one of our admin screens, we don't want to load block editor assets.
+		if ( Util::screen_is_custom_layouts() ) {
+			return;
+		}
 
-		// $js_file_ext = Util::get_file_ext( '.js' );
-		// $css_file_ext = Util::get_file_ext( '.css' );
+		// Enqueue Gutenberg assets using Asset_Loader.
+		Asset_Loader::enqueue( array( 'custom-layouts-gutenberg' ) );
 
-		$js_file_ext  = '.js';
-		$css_file_ext = '.css';
-
-		wp_enqueue_style( 'custom-layouts-frontend', CUSTOM_LAYOUTS_URL . 'assets/css/frontend/custom-layouts' . $css_file_ext, array(), CUSTOM_LAYOUTS_VERSION, 'all' );
-		wp_enqueue_style( 'custom-layouts-admin', CUSTOM_LAYOUTS_URL . 'assets/css/admin/custom-layouts' . $css_file_ext, array( 'wp-components', 'wp-editor-font', 'wp-block-editor' ), CUSTOM_LAYOUTS_VERSION, 'all' );
-
-		// Add the container for loading our modals into
+		// Add the container for loading our modals into.
 		add_action( 'admin_footer', array( 'Custom_Layouts\\Integrations\\Gutenberg', 'add_editor_modal' ) );
 	}
 
+	/**
+	 * Add the container for loading our modals into.
+	 */
 	public static function add_editor_modal() {
 		echo '<div id="cl-admin-app-modal" style="position:relative;"></div>';
 	}
 
-	// Adds a toggle to stop event propogation to keyboard events
-	// Possible damage control for - https://github.com/WordPress/gutenberg/issues/18755
+	/**
+	 * Adds a toggle to stop event propogation to keyboard events.
+	 *
+	 * Possible damage control for - https://github.com/WordPress/gutenberg/issues/18755
+	 */
 	public static function shortcut_capture_script() {
 		?>
 		<script>
-		// lets get in before gutenberg even loads, we'll use a nasty hack to interrupt
-		// Mousetrap keyboard shortcuts
+		// Lets get in before gutenberg even loads, we'll use a nasty hack to interrupt.
+		// Mousetrap keyboard shortcuts.
 		window.customLayoutsHandler = { blockShortcuts: false };
 		const displayPostDockKeyBlock = function( e ) {
 			if ( window.customLayoutsHandler.blockShortcuts === true ) {

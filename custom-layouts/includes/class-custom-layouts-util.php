@@ -31,83 +31,49 @@ class Util {
 	 *
 	 * @var array
 	 */
-	private static $queries     = array();
-	private static $svgs_loaded = array();
+	private static $queries = array();
 
 	/**
-	 * Takes either a filter group ID, or a query ID, and returns the related set of filters / query
+	 * Stores a copy of the SVGs loaded to save additional function calls for the same info later
 	 *
-	 * @param int    $post_id  The Post ID of the filters / query.
-	 * @param string $return   The desired return format - can be 'post' or 'id'.
-	 *
-	 * @return mixed
+	 * @var array
 	 */
-	public static function get_related_post( $post_id, $return = 'post' ) {
-
-		$post_type = get_post_type( $post_id );
-
-		if ( 'sf-query' === $post_type ) {
-
-			$args = array(
-				'post_type'   => 'sf-filters',
-				'post_status' => array( 'draft', 'pending', 'publish' ),
-				'post_parent' => $post_id,
-				'fields'      => 'ids',
-			);
-
-			$filters_ids = get_posts( $args );
-
-			// there should only be one filter group assocated with a query.
-			if ( count( $filters_ids ) === 1 ) {
-				$filters_id = $filters_ids[0];
-				return $filters_id;
-			}
-			/*
-			 else {
-				// TODO - log error.
-			} */
-
-		} elseif ( 'sf-filters' === $post_type ) {
-			// then just grab the parent ID.
-			$query_id = wp_get_post_parent_id( $post_id );
-			return $query_id;
-		}
-
-		return false;
-	}
+	private static $svgs_loaded = array();
 
 	/**
 	 * Deep cleans a var
 	 *
 	 * Loops through arrays recursively, sanitizing scalar values only
 	 *
-	 * @return array
+	 * @param mixed $value The variable to clean.
+	 *
+	 * @return array|string
 	 */
-	public static function deep_clean( $var ) {
-		if ( is_array( $var ) ) {
-			// don't we need to sanitize the key as well?
+	public static function deep_clean( $value ) {
+		if ( is_array( $value ) ) {
+			// Don't we need to sanitize the key as well?
 			$cleaned = array();
-			foreach ( $var as $key => $val ) {
+			foreach ( $value as $key => $val ) {
 				$cleaned[ sanitize_text_field( $key ) ] = self::deep_clean( $val );
 			}
 			return $cleaned;
 		} else {
-			// check if var is multiline or not
+			// Check if var is multiline or not.
 			$is_multline = false;
-			if ( strstr( $var, PHP_EOL ) ) {
+			if ( strstr( $value, PHP_EOL ) ) {
 				$is_multline = true;
 			}
 
-			 // don't allow anything except scalar or array
-			if ( ! is_scalar( $var ) ) {
+			// Don't allow anything except scalar or array.
+			if ( ! is_scalar( $value ) ) {
 				return '';
 			}
 
-			return $is_multline ? sanitize_textarea_field( $var ) : sanitize_text_field( $var );
+			return $is_multline ? sanitize_textarea_field( $value ) : sanitize_text_field( $value );
 		}
 	}
 	/**
-	 * Gets all the Query posts
+	 * Gets all the Query posts.
 	 *
 	 * @return array
 	 */
@@ -122,7 +88,7 @@ class Util {
 		$sf_queries   = array();
 
 		foreach ( $sf_query_ids as $query_id ) {
-			// now store their query settings somewhere to use.
+			// Now store their query settings somewhere to use.
 
 			$query_integration = get_post_meta( $query_id, 'custom-layouts-layout', true );
 			$query_settings    = get_post_meta( $query_id, 'custom-layouts-query', true );
@@ -141,22 +107,22 @@ class Util {
 		return self::$queries;
 	}
 	/**
-	 * Gets the "section" variable from the admin url or form post
+	 * Gets the "section" variable from the admin url or form post.
 	 *
 	 * @return string
 	 */
 	public static function get_post_edit_section() {
-		if ( isset( $_GET['section'] ) ) {
-			return sanitize_key( $_GET['section'] );
-		} elseif ( isset( $_POST['custom-layouts-section'] ) ) {
-			return sanitize_key( $_POST['custom-layouts-section'] );
+		if ( isset( $_GET['section'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			return sanitize_key( $_GET['section'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		} elseif ( isset( $_POST['custom-layouts-section'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			return sanitize_key( $_POST['custom-layouts-section'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		}
 		return 'query';
 	}
 	/**
-	 * Gets the post type edit screen
+	 * Check if we're editing a template.
 	 *
-	 * @return string
+	 * @return bool
 	 */
 	public static function screen_is_template_edit() {
 		$current_screen = get_current_screen();
@@ -165,6 +131,11 @@ class Util {
 		}
 		return false;
 	}
+	/**
+	 * Check if we're editing a layout.
+	 *
+	 * @return bool
+	 */
 	public static function screen_is_layout_edit() {
 		$current_screen = get_current_screen();
 		if ( 'cl-layout' === $current_screen->id ) {
@@ -174,30 +145,84 @@ class Util {
 	}
 
 	/**
-	 * Adds `.min` to a file extension if SCRIPT_DEBUG is disabled
+	 * Check if we're editing the settings.
 	 *
-	 * @param string $file_ext  The extension of the file.
-	 *
-	 * @return string
+	 * @return bool
 	 */
-	public static function get_file_ext( $file_ext ) {
-
-		$file_ext = strtolower( $file_ext );
-
-		// TODO - reinstate
-		/*
-		if ( ( '.js' === $file_ext ) || ( '.css' === $file_ext ) ) {
-			if ( false === SCRIPT_DEBUG ) {
-				$file_ext = '.min' . $file_ext;
-			}
-		}*/
-
-		return $file_ext;
+	public static function screen_is_settings() {
+		$current_screen = get_current_screen();
+		if ( 'custom-layouts_page_custom-layouts-settings' === $current_screen->id ) {
+			return true;
+		}
+		return false;
 	}
 
+	/**
+	 * Check if we're on the template post type list screen.
+	 */
+	public static function screen_is_template_list() {
+		$current_screen = get_current_screen();
+		if ( 'edit-cl-template' === $current_screen->id ) {
+			return true;
+		}
+		return false;
+	}
 
 	/**
-	 * Get the data for the object that gets passed to JS app
+	 * Check if we're on the layout post type list screen.
+	 */
+	public static function screen_is_layout_list() {
+		$current_screen = get_current_screen();
+		if ( 'edit-cl-layout' === $current_screen->id ) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Checks if the current screen is a custom layouts admin screen.
+	 *
+	 * @return bool
+	 */
+	public static function screen_is_custom_layouts() {
+
+		if ( self::screen_is_template_edit() ) {
+			return true;
+		}
+		if ( self::screen_is_template_list() ) {
+			return true;
+		}
+		if ( self::screen_is_layout_edit() ) {
+			return true;
+		}
+		if ( self::screen_is_layout_list() ) {
+			return true;
+		}
+		if ( self::screen_is_settings() ) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Checks if the current screen is a custom layouts edit screen.
+	 *
+	 * This is a custom layouts edit screen, aka layout or template editors.
+	 *
+	 * @return bool
+	 */
+	public static function screen_is_custom_layouts_edit() {
+		if ( self::screen_is_template_edit() ) {
+			return true;
+		}
+		if ( self::screen_is_layout_edit() ) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Get the data for the object that gets passed to JS app.
 	 *
 	 * @return array
 	 */
@@ -212,7 +237,7 @@ class Util {
 
 
 	/**
-	 * Wrapper for the WP `get_option` function, implementing defaults if they do not exist yet
+	 * Wrapper for the WP `get_option` function, implementing defaults if they do not exist yet.
 	 *
 	 * @param string $option_name  The option key required.
 	 *
@@ -244,9 +269,9 @@ class Util {
 	}
 
 	/**
-	 * Converts an associative array to a HTML attribute string, escapes data
+	 * Converts an associative array to a HTML attribute string, escapes data.
 	 *
-	 * @param array $attributes  An associative array of key -> value pairs.
+	 * @param mixed $attributes  An associative array of key -> value pairs.
 	 *
 	 * @return string
 	 */
@@ -283,7 +308,7 @@ class Util {
 
 	/**
 	 * Inlines SVGs by filename, makes sure SVGs are never loaded twice,
-	 * we use the ID's to use them so they are essentially just templates
+	 * we use the ID's to use them so they are essentially just templates.
 	 *
 	 * @param array $svgs  A list of SVG names (without file extension).
 	 */
@@ -293,17 +318,17 @@ class Util {
 
 		// Loop through, and only load the ones not yet loaded ( we can't load multiple times, they have unique IDs ).
 		foreach ( $svgs as $svg_name ) {
-			if ( ! in_array( $svg_name, self::$svgs_loaded ) ) {
+			if ( ! in_array( $svg_name, self::$svgs_loaded, true ) ) {
 				array_push( $svgs_to_load, $svg_name );
 			}
 		}
 
-		// Return if empty.
+		// Return early if empty.
 		if ( empty( $svgs_to_load ) ) {
 			return;
 		}
 
-		// TODO - use file_get_contents instead - https://sheelahb.com/blog/how-to-get-php-to-play-nicely-with-svg-files/ - https://css-tricks.com/using-svg/
+		// TODO - use file_get_contents instead - https://sheelahb.com/blog/how-to-get-php-to-play-nicely-with-svg-files/ - https://css-tricks.com/using-svg/.
 
 		// Now we have some to load, so include + hide them - use inline display to prevent flicker.
 		echo '<div class="custom-layouts-svg-template" aria-hidden="true" style="display: none;">';
@@ -314,7 +339,14 @@ class Util {
 		echo '</div>';
 	}
 
-
+	/**
+	 * Get the image by size.
+	 *
+	 * @param int    $post_attachment_id The post attachment ID.
+	 * @param string $size_name The size name.
+	 *
+	 * @return array|false The image data.
+	 */
 	public static function get_image_by_size( $post_attachment_id, $size_name ) {
 		$attachment_data = wp_get_attachment_image_src( $post_attachment_id, $size_name );
 

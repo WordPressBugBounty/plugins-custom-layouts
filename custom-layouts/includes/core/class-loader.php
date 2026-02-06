@@ -1,8 +1,8 @@
 <?php
-namespace Custom_Layouts\Core;
-
 /**
- * Register all actions and filters for the plugin
+ * Loader file.
+ *
+ * Register all actions and filters for the plugin.
  *
  * @link       http://codeamp.com
  * @since      1.0.0
@@ -11,11 +11,20 @@ namespace Custom_Layouts\Core;
  * @subpackage Custom_Layouts/includes
  */
 
+namespace Custom_Layouts\Core;
+
 // If this file is called directly, abort.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Loader class.
+ *
+ * Maintains a registry of all hooks and manages their registration with WordPress.
+ *
+ * @since 1.0.0
+ */
 class Loader {
 
 	/**
@@ -45,7 +54,6 @@ class Loader {
 
 		$this->actions = array();
 		$this->filters = array();
-
 	}
 
 	/**
@@ -70,7 +78,7 @@ class Loader {
 	 * @param    object $component        A reference to the instance of the object on which the filter is defined.
 	 * @param    string $callback         The name of the function definition on the $component.
 	 * @param    int    $priority         Optional. he priority at which the function should be fired. Default is 10.
-	 * @param    int    $accepted_args    Optional. The number of arguments that should be passed to the $callback. Default is 1
+	 * @param    int    $accepted_args    Optional. The number of arguments that should be passed to the $callback. Default is 1.
 	 */
 	public function add_filter( $hook, $component, $callback, $priority = 10, $accepted_args = 1 ) {
 		$this->filters = $this->add( $this->filters, $hook, $component, $callback, $priority, $accepted_args );
@@ -101,7 +109,6 @@ class Loader {
 		);
 
 		return $hooks;
-
 	}
 
 	/**
@@ -118,7 +125,5 @@ class Loader {
 		foreach ( $this->actions as $hook ) {
 			add_action( $hook['hook'], array( $hook['component'], $hook['callback'] ), $hook['priority'], $hook['accepted_args'] );
 		}
-
 	}
-
 }

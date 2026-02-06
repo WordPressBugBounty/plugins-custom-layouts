@@ -1,5 +1,6 @@
 <?php
 /**
+ * Helper functions and utilities for Custom Layouts.
  *
  * @link       http://codeamp.com
  * @since      1.0.0

@@ -1,8 +1,8 @@
 <?php
-namespace Custom_Layouts;
-
 /**
- * Fired during plugin deactivation
+ * Plugin deactivator file.
+ *
+ * Fired during plugin deactivation.
  *
  * @link       http://codeamp.com
  * @since      1.0.0
@@ -11,11 +11,20 @@ namespace Custom_Layouts;
  * @subpackage Custom_Layouts/includes
  */
 
+namespace Custom_Layouts;
+
 // If this file is called directly, abort.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Deactivator class.
+ *
+ * Handles plugin deactivation tasks.
+ *
+ * @since 1.0.0
+ */
 class Deactivator {
 
 	/**
@@ -26,7 +35,5 @@ class Deactivator {
 	 * @since    1.0.0
 	 */
 	public static function deactivate() {
-
 	}
-
 }

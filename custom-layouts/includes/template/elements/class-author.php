@@ -23,9 +23,16 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Author extends Element_Base {
 
-	private $post;
-
-	public function render( $post, $instance, $template, $return = false ) {
+	/**
+	 * Render the author element.
+	 *
+	 * @param \WP_Post $post Post object.
+	 * @param array    $instance Element instance data.
+	 * @param array    $template Template data.
+	 * @param bool     $return_output Whether to return the output instead of echoing.
+	 * @return string|void The output if $return_output is true, void otherwise.
+	 */
+	public function render( $post, $instance, $template, $return_output = false ) {
 
 		$instance_data = $instance['data'];
 		$element_type  = $instance['elementId'];
@@ -58,7 +65,7 @@ class Author extends Element_Base {
 			$image = ob_get_clean();
 		}
 		if ( 'yes' === $link_to_archive ) {
-			$author_link = get_author_posts_url( $post->post_author );
+			$author_link = get_author_posts_url( (int) $post->post_author );
 			$author      = '<a href="' . esc_url( $author_link ) . '" class="cl-element-author__text">' . esc_html( $data[ $display_mode ] ) . '</a>';
 		} else {
 			$author = '<div class="cl-element-author__text">' . esc_html( $data[ $display_mode ] ) . '</div>';
@@ -77,15 +84,23 @@ class Author extends Element_Base {
 
 		$output = parent::run_post_render_hooks( $output, $element_type, $instance_data, $post, $template );
 
-		if ( $return ) {
+		if ( $return_output ) {
 			return $output;
 		}
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Output is pre-escaped by esc_html(), esc_url() and parent::run_post_render_hooks()
 		echo $output;
 	}
 
+	/**
+	 * Get author data for a post.
+	 *
+	 * @param \WP_Post $post Post object.
+	 * @param bool     $display_mode Display mode (unused).
+	 * @return array Author data.
+	 */
 	public function get_data( $post, $display_mode = false ) {
 		// $post_content = wp_strip_all_tags( apply_filters( 'the_content', $post->post_content ) );
-		$author_id   = $post->post_author;
+		$author_id   = (int) $post->post_author;
 		$author      = get_user_by( 'id', $author_id );
 		$author_data = array(
 			'id'           => $author->ID,
@@ -98,5 +113,4 @@ class Author extends Element_Base {
 		);
 		return $author_data;
 	}
-
 }

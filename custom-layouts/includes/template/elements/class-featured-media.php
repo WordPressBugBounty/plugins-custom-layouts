@@ -26,15 +26,28 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Featured_Media extends Element_Base {
 
-	private $post;
-
+	/**
+	 * Determine the axis (vertical/horizontal) of the featured media.
+	 *
+	 * @param string $image_position The position of the image.
+	 * @return string The axis (vertical or horizontal).
+	 */
 	private function featured_media_axis( $image_position ) {
 		if ( $image_position === 'top' || $image_position === 'bottom' ) {
 			return 'vertical';
 		}
 		return 'horizontal';
 	}
-	public function render( $post, $instance, $template, $return = false ) {
+	/**
+	 * Render the featured media element.
+	 *
+	 * @param \WP_Post $post The post object.
+	 * @param array    $instance The instance configuration.
+	 * @param array    $template The template configuration.
+	 * @param bool     $return_output Whether to return the output instead of echoing.
+	 * @return string|void The output if $return_output is true.
+	 */
+	public function render( $post, $instance, $template, $return_output = false ) {
 
 		$instance_data = $instance['data'];
 		$element_type  = $instance['elementId'];
@@ -67,16 +80,16 @@ class Featured_Media extends Element_Base {
 			$placeholder  = '<svg class="cl-element-featured_media__placeholder-image"><use xlink:href="#cl-svg-image-placeholder" /></svg>';
 			$output       = $svg_template . $placeholder;
 
-		} elseif ( $image_url !== '' ) {
-			// now we need to figure out if we want to show a regular image, or create div / container and use background-image
-			$use_img_tag = true; // use img tag
+		} else {
+			// Now we need to figure out if we want to show a regular image, or create div / container and use background-image.
+			$use_img_tag = true; // Use img tag.
 			if ( $featured_image_axis === 'vertical' ) {
-				// then the image is above or below
+				// Then the image is above or below.
 				if ( $container_sizing !== 'natural' ) {
 					$use_img_tag = false;
 				}
 			} elseif ( $featured_image_axis === 'horizontal' ) {
-				// then the image is left or right
+				// Then the image is left or right.
 				if ( $container_sizing !== 'natural' ) {
 					if ( $image_fit_mode !== 'full_width' && $image_fit_mode !== 'auto' ) {
 						$use_img_tag = false;
@@ -89,24 +102,22 @@ class Featured_Media extends Element_Base {
 				'class' => 'cl-element-featured_media__image',
 			);
 
-			// get alt text
+			// Get alt text.
 			if ( $use_img_tag ) {
 				$image_attributes['src'] = esc_url( $image_url );
 				$image_attributes['alt'] = $alt_text;
 				$attribute_html          = Util::get_attributes_html( $image_attributes );
 				$output                  = '<img ' . $attribute_html . ' />';
-				// todo add alt text
+				// TODO add alt text.
 			} else {
 				$image_attributes['style'] = 'background-image: url(' . esc_url( $image_url ) . ');';
 				$image_attributes['role']  = 'img';
 
 				$image_attributes['aria-label'] = $alt_text;
-				// todo - add alt text as aria-label - https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Roles/Role_Img
+				// TODO - add alt text as aria-label - https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Roles/Role_Img.
 				$attribute_html = Util::get_attributes_html( $image_attributes );
 				$output         = wp_kses_post( '<div ' . $attribute_html . '></div>' );
 			}
-		} else {
-			$output = '';
 		}
 
 		if ( 'yes' === $link_to_post ) {
@@ -119,17 +130,24 @@ class Featured_Media extends Element_Base {
 			$output = '<a class="cl-element-featured_media__anchor" href="' . esc_url( get_permalink( $post->ID ) ) . '"' . $target . ' title="' . esc_attr( get_the_title( $post->ID ) ) . '">' . $output . '</a>';
 		}
 
-		$output = $this->wrap_container( $output, $instance, $image_url, $featured_image_axis );
+		$output = $this->wrap_container( $output, $instance );
 
 		$output = parent::run_post_render_hooks( $output, $element_type, $instance_data, $post, $template );
 
-		if ( $return ) {
+		if ( $return_output ) {
 			return $output;
 		}
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Output is pre-escaped by esc_url(), esc_attr() and parent::run_post_render_hooks()
 		echo $output;
 	}
 
 
+	/**
+	 * Get image data for all available sizes.
+	 *
+	 * @param \WP_Post $post The post object.
+	 * @return array The image data array.
+	 */
 	public function get_data( $post ) {
 		global $_wp_additional_image_sizes;
 		$image_data = array();
@@ -152,6 +170,14 @@ class Featured_Media extends Element_Base {
 		return $image_data;
 	}
 
+	/**
+	 * Generate CSS for the featured media element.
+	 *
+	 * @param array  $instance The instance configuration.
+	 * @param string $template_class The template class selector.
+	 * @param array  $template The template configuration.
+	 * @return string The generated CSS.
+	 */
 	public function get_css( $instance, $template_class, $template = array() ) {
 		$instance_class = $this->get_instance_class( $instance['id'] );
 		$instance_data  = $instance['data'];
@@ -163,18 +189,18 @@ class Featured_Media extends Element_Base {
 		$full_placeholder_image_selector = $template_class . ' ' . $instance_class . ' .cl-element-featured_media__placeholder-image';
 
 		$featured_image_axis = $this->featured_media_axis( $image_position );
-		// now we need to figure out if we want to show a regular image, or create div / container and use background-image
-		$use_img_tag      = true; // use img tag
+		// Now we need to figure out if we want to show a regular image, or create div / container and use background-image.
+		$use_img_tag      = true; // Use img tag.
 		$container_sizing = $instance_data['containerSizing'];
 		$image_fit_mode   = $instance_data['imageFitMode'];
 		$image_align      = isset( $instance_data['imageAlign'] ) ? $instance_data['imageAlign'] : 'center center';
 		if ( $featured_image_axis === 'vertical' ) {
-			// then the image is above or below
+			// Then the image is above or below.
 			if ( $container_sizing !== 'natural' ) {
 				$use_img_tag = false;
 			}
 		} elseif ( $featured_image_axis === 'horizontal' ) {
-			// then the image is left or right
+			// Then the image is left or right.
 			if ( $container_sizing !== 'natural' ) {
 				if ( $image_fit_mode !== 'full_width' && $image_fit_mode !== 'auto' ) {
 					$use_img_tag = false;
@@ -182,7 +208,7 @@ class Featured_Media extends Element_Base {
 			}
 		}
 
-		// container styles
+		// Container styles.
 		$css              = '/* ' . $instance['elementId'] . ' */';
 		$css              = $template_class . ' ' . $instance_class . '{';
 		$css             .= CSS_Loader::parse_css_settings( $instance['data'] );
@@ -191,13 +217,13 @@ class Featured_Media extends Element_Base {
 		if ( $container_sizing === 'natural' ) {
 			$container_styles['display'] = 'flex';
 
-			// figure out alignment
+			// Figure out alignment.
 
 			$alignments = explode( ' ', $image_align );
 			if ( count( $alignments ) === 2 ) {
 
 				if ( $featured_image_axis === 'vertical' ) {
-					$align = trim( strtolower( $alignments[1] ) ); // left / center / right
+					$align = trim( strtolower( $alignments[1] ) ); // Left / center / right.
 					if ( 'left' === $align ) {
 						$container_styles['justifyContent'] = 'flex-start';
 					} elseif ( 'center' === $align ) {
@@ -206,9 +232,9 @@ class Featured_Media extends Element_Base {
 						$container_styles['justifyContent'] = 'flex-end';
 					}
 				} else {
-					// if horizontal use the first part...
+					// If horizontal use the first part.
 
-					$align = trim( strtolower( $alignments[0] ) ); // top / center / bottom
+					$align = trim( strtolower( $alignments[0] ) ); // Top / center / bottom.
 					if ( 'top' === $align ) {
 						$container_styles['alignItems'] = 'flex-start';
 					} elseif ( 'center' === $align ) {
@@ -220,7 +246,7 @@ class Featured_Media extends Element_Base {
 			}
 		} elseif ( $container_sizing === 'aspect_ratio' ) {
 			if ( $featured_image_axis === 'vertical' ) {
-				// then we need to set the container to an aspect ratio
+				// Then we need to set the container to an aspect ratio.
 				$aspect_ratio = $instance_data['aspectRatio'];
 				$aspect_parts = explode( '_', $aspect_ratio );
 				if ( 2 === count( $aspect_parts ) ) {
@@ -270,7 +296,7 @@ class Featured_Media extends Element_Base {
 		 * image styles
 		 */
 		if ( $featured_image_axis === 'vertical' ) {
-			// then the image is above or below
+			// Then the image is above or below.
 			if ( $container_sizing !== 'natural' ) {
 				$use_img_tag = false;
 			}
@@ -279,15 +305,15 @@ class Featured_Media extends Element_Base {
 
 		/*
 		if ( $featured_image_axis === 'vertical' ) {
-			 else {
+			else {
 				//the it must be "natural"
 				$container_styles['flex'] = '0 1 0';
 			}
 
 		}*/
-		// then we are not using image tag and instead using background-image css
+		// Then we are not using image tag and instead using background-image css.
 		if ( ! $use_img_tag ) {
-			// now add styles to image element
+			// Now add styles to image element.
 			$image_styles = wp_parse_args(
 				array(
 					'backgroundPosition' => $image_align,
@@ -315,15 +341,15 @@ class Featured_Media extends Element_Base {
 		}
 		// }
 
-		// image
+		// Image.
 		$css .= $full_image_selector . ' {';
 		$css .= CSS_Loader::parse_css_settings( $image_styles );
 		$css .= '}';
 
-		// placeholder image
+		// Placeholder image.
 		$css                     .= $full_placeholder_image_selector . ' {';
 		$placeholder_image_styles = array();
-		// now add foreground color for the SVG
+		// Now add foreground color for the SVG.
 		if ( isset( $instance_data['foregroundColor'] ) ) {
 			$placeholder_image_styles['fill'] = $instance_data['foregroundColor'];
 		}
@@ -334,7 +360,14 @@ class Featured_Media extends Element_Base {
 		return $css;
 	}
 
-	// override the container
+	/**
+	 * Wrap the output in a container element.
+	 *
+	 * @param string $output The output to wrap.
+	 * @param array  $instance The instance configuration.
+	 * @param bool   $has_image Whether an image is present.
+	 * @return string The wrapped output.
+	 */
 	public function wrap_container( $output, $instance, $has_image = true ) {
 		$no_image_class = '';
 		if ( ! $has_image ) {
@@ -353,10 +386,10 @@ class Featured_Media extends Element_Base {
 
 		ob_start();
 		echo '<' . sanitize_key( $html_tag ) . ' class="cl-element cl-element-' . esc_attr( $instance['elementId'] ) . ' cl-element--instance-' . intval( $instance_id ) . ' ' . esc_attr( $custom_class ) . esc_attr( $no_image_class ) . esc_attr( $sizing_class ) . '">';
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Output is already escaped with esc_url() and esc_attr()
 		echo $output;
 		echo '</' . sanitize_key( $html_tag ) . '>';
 
 		return ob_get_clean();
-
 	}
 }

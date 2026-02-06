@@ -1,10 +1,10 @@
 === Custom Layouts - Post + Product grids made easy ===
 Contributors: CodeAmp
 Tags: posts, products, post grid, product grid, recent posts
-Requires at least: 5.9
-Tested up to: 6.5
+Requires at least: 6.5
+Tested up to: 6.9
 Requires PHP: 7.2
-Stable tag: 1.4.12
+Stable tag: 1.5.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -172,13 +172,20 @@ Where `123` is the ID of your layout
 * Blocks for ACF
 * More template blocks (possibly use the block library)
 * Additional hover options
-* Additional font options - either Google fonts or the Gutenberg api which looks like it's coming soon
+* Additional font options.
 * Social/sharing blocks
 
 **[Reviews](https://wordpress.org/support/plugin/custom-layouts/reviews/#new-post) help us improve (and climb the plugin rankings)**
 
 == Changelog ==
 
+= 1.5.1 =
+* Fix - an issue that prevented layouts and template from being saved in the admin editors.
+
+= 1.5.0 =
+* New - add Support for Search & Filter Version 3.
+* Fix - issues with date custom fields and timezone formatting.
+* Fix - security hardening - prevent post templates in editor previews from showing protected content.
 
 = 1.4.12 =
 * Security improvements.
@@ -402,5 +409,3 @@ We have changed the name of our layout shortcode - it is now `[custom-layout]` -
 
 = 1.1.7 =
 When upgrading, CSS should be automatically regenerated.  If it is not, head to the new settings page and choose "Regenerate CSS".
-
-

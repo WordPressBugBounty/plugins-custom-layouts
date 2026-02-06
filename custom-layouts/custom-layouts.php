@@ -1,16 +1,20 @@
 <?php
 /**
+ * Custom Layouts - Post + Product grids made easy.
+ *
  * @wordpress-plugin
  * Plugin Name:       Custom Layouts - Post + Product grids made easy
  * Plugin URI:        https://customlayouts.com
  * Description:       Build a list or grid layout of any post type.  Design the look of each item in the layout using our powerful drag and drop template editor.
- * Version:           1.4.12
+ * Version:           1.5.1
  * Author:            Code Amp
  * Author URI:        https://codeamp.com
  * License:           GPL-2.0+
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  * Text Domain:       custom-layouts
  * Domain Path:       /languages
+ *
+ * @package Custom_Layouts
  */
 
 // If this file is called directly, abort.
@@ -69,6 +73,5 @@ function run_custom_layouts() {
 
 	$plugin = new Custom_Layouts();
 	$plugin->run();
-
 }
 run_custom_layouts();

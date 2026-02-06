@@ -26,7 +26,16 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Taxonomy extends Element_Base {
 
-	public function render( $post, $instance, $template, $return = false ) {
+	/**
+	 * Render the taxonomy element.
+	 *
+	 * @param \WP_Post $post Post object.
+	 * @param array    $instance Element instance data.
+	 * @param array    $template Template data.
+	 * @param bool     $return_output Whether to return the output instead of echoing.
+	 * @return string|void The output if $return_output is true, void otherwise.
+	 */
+	public function render( $post, $instance, $template, $return_output = false ) {
 
 		$instance_data = $instance['data'];
 		$element_type  = $instance['elementId'];
@@ -71,9 +80,14 @@ class Taxonomy extends Element_Base {
 			}
 			ob_start();
 			?>
-			<<?php echo $term_tag; ?> <?php echo Util::get_attributes_html( $term_attributes ); ?>>
+			<<?php echo esc_html( $term_tag ); ?>
+			<?php
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Util::get_attributes_html() returns escaped attributes.
+			echo Util::get_attributes_html( $term_attributes );
+			?>
+			>
 				<?php echo esc_html( $post_term['name'] ); ?>
-			</<?php echo $term_tag; ?>>
+			</<?php echo esc_html( $term_tag ); ?>>
 			<?php
 			$term_output = ob_get_clean();
 			array_push( $terms_output, trim( $term_output ) );
@@ -88,17 +102,26 @@ class Taxonomy extends Element_Base {
 
 		$output = parent::run_post_render_hooks( $output, $element_type, $instance_data, $post, $template );
 
-		if ( ! $return ) {
+		if ( ! $return_output ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Output is pre-escaped by esc_html() and parent::run_post_render_hooks()
 			echo $output;
 		}
 
-		if ( $return ) {
+		if ( $return_output ) {
 			return $output;
 		}
-		echo $output;
-
 	}
 
+	/**
+	 * Get taxonomy data for a post.
+	 *
+	 * @param \WP_Post $post Post object.
+	 * @param array    $taxonomies Array of taxonomy names.
+	 * @param string   $order_by Field to order by.
+	 * @param string   $order_dir Order direction (asc or desc).
+	 * @param int      $max_number Maximum number of terms to return.
+	 * @return array Array of taxonomy terms.
+	 */
 	public function get_data( $post, $taxonomies, $order_by = 'name', $order_dir = 'asc', $max_number = 0 ) {
 		$args = array(
 			'taxonomy'   => $taxonomies,
@@ -114,7 +137,7 @@ class Taxonomy extends Element_Base {
 
 		$term_result      = new \WP_Term_Query( $args );
 		$taxonomies_terms = array();
-		if ( $term_result->terms && is_array( $term_result->terms ) ) {
+		if ( $term_result->terms ) {
 			foreach ( $term_result->terms as $taxonomy_term ) {
 
 				array_push(
@@ -132,17 +155,25 @@ class Taxonomy extends Element_Base {
 	}
 
 
+	/**
+	 * Get CSS for the taxonomy element.
+	 *
+	 * @param array  $instance Element instance data.
+	 * @param string $template_class Template CSS class.
+	 * @param array  $template Template data.
+	 * @return string The generated CSS.
+	 */
 	public function get_css( $instance, $template_class, $template = array() ) {
 		$instance_class  = $this->get_instance_class( $instance['id'] );
 		$html_tag        = isset( $instance['data']['htmlTag'] ) ? Validation::esc_html_tag( $instance['data']['htmlTag'] ) : 'div';
 		$parent_selector = $template_class . ' ' . $html_tag . $instance_class;
-		$child_selector  = '.cl-element-taxonomy__term'; // anchor selector
+		$child_selector  = '.cl-element-taxonomy__term'; // Anchor selector.
 
-		// parent node
+		// Parent node.
 		$css  = '/* ' . $instance['elementId'] . ' */';
 		$css .= $this->create_container_css( $parent_selector, $instance['data'] );
 
-		// child / inline node
+		// Child / inline node.
 		$full_child_selector = $template_class . ' ' . $html_tag . $instance_class . ' ' . $child_selector;
 		$css                .= $full_child_selector . '{';
 
@@ -170,7 +201,7 @@ class Taxonomy extends Element_Base {
 		$css .= '}';
 
 		if ( $instance_data['linkToArchives'] === 'yes' ) {
-			// now add styles to link hover
+			// Now add styles to link hover.
 			$hover_styles = array(
 				'fontFormatBold'      => $instance['data']['termFontFormatBoldHover'],
 				'fontFormatItalic'    => $instance['data']['termFontFormatItalicHover'],

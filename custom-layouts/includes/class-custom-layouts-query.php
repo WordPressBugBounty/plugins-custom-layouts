@@ -1,4 +1,11 @@
 <?php
+/**
+ * Query handler class
+ *
+ * @package    Custom_Layouts
+ * @since      1.0.0
+ */
+
 namespace Custom_Layouts;
 
 use Custom_Layouts\Settings;
@@ -19,35 +26,37 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Manages custom layout queries.
+ *
+ * Handles WP_Query integration for custom layouts.
+ *
+ * @since      1.0.0
+ * @package    Custom_Layouts
+ * @subpackage Custom_Layouts/includes
+ */
 class Query {
+
 	/**
-	 * Initialize the class and set its properties.
+	 * Initialize the class.
 	 *
 	 * @since    1.0.0
-	 * @param      string    $plugin_name       The name of the plugin.
-	 * @param      string    $version    The version of this plugin.
 	 */
-	/*
-	public function __construct( $plugin_name, $version ) {
-
-		$this->plugin_name = $plugin_name;
-		$this->version = $version;
-
-	}*/
-
 	public static function init() {
-		add_action( 'pre_get_posts', 'Custom_Layouts\\Query::setup_queries', 100000, 1 ); // try to be the last thing to attach to the hook
-		// self::$queries = Util::get_queries();
-		// self::attach_queries(self::$queries);
-
+		add_action( 'pre_get_posts', 'Custom_Layouts\\Query::setup_queries', 100000, 1 ); // Try to be the last thing to attach to the hook.
 	}
 
+	/**
+	 * Setup queries based on custom_layouts_query_id.
+	 *
+	 * @param \WP_Query $query WordPress query object.
+	 */
 	public static function setup_queries( $query ) {
 
 		if ( $query->get( 'custom_layouts_query_id' ) ) {
 
-			// Util::get_query
-			// need to use a shared function
+			// Util::get_query.
+			// Need to use a shared function.
 			$query_id = intval( $query->get( 'custom_layouts_query_id' ) );
 
 			$query_data       = Settings::get_section_data( $query_id, 'query' );
@@ -58,17 +67,4 @@ class Query {
 			$query->set( 'post_status', $query_data['post_status'] );
 		}
 	}
-	public static function setup_query( $query ) {
-
-		if ( $query->get( 'custom_layouts_query_id' ) ) {
-
-			// Util::get_query
-			// need to use a shared function
-			$query_integration_values = get_post_meta( $query->get( 'custom_layouts_query_id' ), 'custom-layouts-layout', true );
-			$query_settings           = get_post_meta( $query->get( 'custom_layouts_query_id' ), 'custom-layouts-query', true );
-			// $this->setup_query($query);
-		}
-
-	}
-
 }

@@ -1,10 +1,9 @@
 <?php
-namespace Custom_Layouts\Core;
-
 /**
- * Handle plugin upgrades
+ * Upgrade handler file.
  *
- * Detect when our plugin has been updated and run routines
+ * Handle plugin upgrades.
+ * Detect when our plugin has been updated and run routines.
  *
  * @link       http://codeamp.com
  * @since      1.4.0
@@ -13,11 +12,20 @@ namespace Custom_Layouts\Core;
  * @subpackage Custom_Layouts/includes
  */
 
+namespace Custom_Layouts\Core;
+
 // If this file is called directly, abort.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Upgrade class.
+ *
+ * Handles version detection and upgrade routines.
+ *
+ * @since 1.4.0
+ */
 class Upgrade {
 
 	/**
